@@ -13,10 +13,10 @@ struct SidebarView: View {
     var body: some View {
         @Bindable var appState = appState
         List(selection: $appState.selection) {
-            Section("Planificación") {
-                Label("Hoy", systemImage: "sun.max").tag(SidebarItem.today)
-                Label("Semana", systemImage: "calendar").tag(SidebarItem.week)
-                Label("Tareas", systemImage: "checklist").tag(SidebarItem.tasks)
+            Section("Planner") {
+                Label("Today", systemImage: "sun.max").tag(SidebarItem.today)
+                Label("Calendar", systemImage: "calendar").tag(SidebarItem.calendar)
+                Label("Tasks", systemImage: "checklist").tag(SidebarItem.tasks)
             }
 
             Section {
@@ -25,13 +25,13 @@ struct SidebarView: View {
                 }
             } header: {
                 HStack {
-                    Text("Semestre \(semester.name)")
+                    Text("Semester \(semester.name)")
                     Spacer()
                     Menu {
-                        Button("Agregar área personal…", systemImage: "plus") { showingNewArea = true }
-                        Button("Ajustes del semestre…", systemImage: "calendar.badge.clock") { showingSemesterSettings = true }
+                        Button("Add Personal Area…", systemImage: "plus") { showingNewArea = true }
+                        Button("Semester Settings…", systemImage: "calendar.badge.clock") { showingSemesterSettings = true }
                         Divider()
-                        Button("Nuevo semestre…", systemImage: "folder.badge.plus") { showingNewSemester = true }
+                        Button("New Semester…", systemImage: "folder.badge.plus") { showingNewSemester = true }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -67,7 +67,7 @@ struct AreaRow: View {
             if area.isFolderMissing {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
-                    .help("No encuentro la carpeta de esta materia")
+                    .help("This course’s folder can’t be found")
             }
             Text("#\(area.tag)")
                 .font(.caption.monospaced())

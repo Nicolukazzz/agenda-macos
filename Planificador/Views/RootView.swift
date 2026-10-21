@@ -18,6 +18,7 @@ struct RootView: View {
 struct MainSplitView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var context
+    @Environment(\.undoManager) private var undoManager
     let semester: Semester
 
     var body: some View {
@@ -28,23 +29,26 @@ struct MainSplitView: View {
         } detail: {
             detail
         }
+        // ⌘Z / ⌘⇧Z undo calendar and task changes.
+        .onAppear { context.undoManager = undoManager }
+        .onChange(of: undoManager) { context.undoManager = undoManager }
     }
 
     @ViewBuilder
     private var detail: some View {
         switch appState.selection {
         case .today:
-            PlaceholderView(title: "Hoy", systemImage: "sun.max", message: "Tus tareas vencidas, las de hoy y tus bloques del día aparecerán aquí (fase 3).")
-        case .week, .none:
-            PlaceholderView(title: "Semana", systemImage: "calendar", message: "El calendario semanal llega en la fase 2.")
+            PlaceholderView(title: "Today", systemImage: "sun.max", message: "Overdue tasks, today’s tasks and today’s blocks will appear here (phase 3).")
+        case .calendar, .none:
+            CalendarView(semester: semester)
         case .tasks:
-            PlaceholderView(title: "Tareas", systemImage: "checklist", message: "Las tareas con entrada rápida llegan en la fase 3.")
+            PlaceholderView(title: "Tasks", systemImage: "checklist", message: "Tasks with quick entry arrive in phase 3.")
         case .area(let id):
             if let area = context.model(for: id) as? Area, area.semester != nil {
                 CourseView(area: area)
                     .id(id)
             } else {
-                PlaceholderView(title: "Materia", systemImage: "questionmark.folder", message: "Esta materia ya no existe.")
+                PlaceholderView(title: "Course", systemImage: "questionmark.folder", message: "This course no longer exists.")
             }
         }
     }

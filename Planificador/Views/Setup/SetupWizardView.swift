@@ -43,13 +43,13 @@ struct SetupWizardView: View {
                 .font(.system(size: 30))
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 2) {
-                Text(semesters.isEmpty ? "Bienvenido a Agenda" : "Nuevo semestre")
+                Text(semesters.isEmpty ? "Welcome to Agenda" : "New Semester")
                     .font(.title2.weight(.semibold))
-                Text(["Elige tu carpeta de clases", "Revisa tus materias"][step])
+                Text(["Choose your classes folder", "Review your courses"][step])
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("Paso \(step + 1) de 2")
+            Text("Step \(step + 1) of 2")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -60,15 +60,15 @@ struct SetupWizardView: View {
     private var footer: some View {
         HStack {
             if step > 0 {
-                Button("Atrás") { withAnimation(.smooth) { step -= 1 } }
+                Button("Back") { withAnimation(.smooth) { step -= 1 } }
             }
             Spacer()
             if step < 1 {
-                Button("Siguiente") { advance() }
+                Button("Next") { advance() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(step == 0 && selectedSemester == nil)
             } else {
-                Button("Crear semestre") { create() }
+                Button("Create Semester") { create() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(!draftsAreValid)
             }
@@ -81,7 +81,7 @@ struct SetupWizardView: View {
 
     private var rootStep: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Agenda lee tus carpetas de clases organizadas por semestre (por ejemplo `2026-2`). Nunca mueve ni borra tus archivos; solo crea la carpeta `Notas/` dentro de cada materia cuando escribas una nota.")
+            Text("Agenda reads your classes folders, organized by semester (for example `2026-2`). It never moves or deletes your files; it only creates a `Notas/` folder inside a course when you write a note.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -92,8 +92,8 @@ struct SetupWizardView: View {
                     .truncationMode(.middle)
                     .textSelection(.enabled)
                 Spacer()
-                Button("Cambiar…") {
-                    if let url = chooseFolder(startingAt: appState.classesRootURL, prompt: "Usar esta carpeta") {
+                Button("Change…") {
+                    if let url = chooseFolder(startingAt: appState.classesRootURL, prompt: "Use This Folder") {
                         appState.classesRootPath = url.path(percentEncoded: false)
                         scan()
                     }
@@ -106,11 +106,11 @@ struct SetupWizardView: View {
                 Label(scanError, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             } else if detected.isEmpty {
-                Label("No encontré carpetas de semestre aquí (formato 2026-1 o 2026-2).", systemImage: "questionmark.folder")
+                Label("No semester folders here (named like 2026-1 or 2026-2).", systemImage: "questionmark.folder")
                     .foregroundStyle(.secondary)
             } else {
-                Text("Semestre a configurar").font(.headline)
-                Picker("Semestre", selection: $selectedSemester) {
+                Text("Semester to set up").font(.headline)
+                Picker("Semester", selection: $selectedSemester) {
                     ForEach(detected, id: \.name) { folder in
                         Text(folder.name).tag(Optional(folder.name))
                     }
@@ -126,7 +126,7 @@ struct SetupWizardView: View {
 
     private var coursesStep: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Cada carpeta es una materia. El tag es lo que escribirás con `#` para asignarle tareas (por ejemplo `Taller #so viernes`).")
+            Text("Each folder is a course. Its tag is what you’ll type after `#` to assign tasks and events (for example `Lab report #so friday`).")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             List {
@@ -168,7 +168,7 @@ struct SetupWizardView: View {
         } catch {
             detected = []
             selectedSemester = nil
-            scanError = "No pude leer la carpeta: \(error.localizedDescription)"
+            scanError = "Couldn’t read the folder: \(error.localizedDescription)"
         }
     }
 
@@ -191,8 +191,8 @@ struct SetupWizardView: View {
 
     private var draftProblem: String? {
         let tags = drafts.filter(\.include).map(\.tag)
-        if tags.contains(where: \.isEmpty) { return "Cada materia necesita un tag." }
-        if Set(tags).count != tags.count { return "Hay tags repetidos; cada materia necesita uno distinto." }
+        if tags.contains(where: \.isEmpty) { return "Every course needs a tag." }
+        if Set(tags).count != tags.count { return "Tags must be unique; two courses share one." }
         return nil
     }
 
@@ -219,7 +219,7 @@ struct SetupWizardView: View {
             context.insert(area)
         }
         try? context.save()
-        appState.selection = .week
+        appState.selection = .calendar
         onFinish()
     }
 }

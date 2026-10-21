@@ -13,17 +13,18 @@ struct AreaEditorView: View {
     @State private var name = ""
     @State private var tag = ""
     @State private var colorHex = CoursePalette.color(at: 0)
+    @State private var triedToSave = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(area == nil ? "Nueva área personal" : "Editar \(area?.name ?? "")")
+            Text(area == nil ? "New Personal Area" : "Edit \(area?.name ?? "")")
                 .font(.title3.weight(.semibold))
             if area == nil {
-                Text("Para cosas que no son materias: `#personal`, `#trabajo`, `#gym`…")
+                Text("For things that aren’t courses: `#personal`, `#work`, `#gym`…")
                     .foregroundStyle(.secondary)
             }
             Form {
-                TextField("Nombre", text: $name)
+                TextField("Name", text: $name)
                     .onChange(of: name) {
                         if area == nil { tag = TagSuggester.suggest(for: name, existing: takenTags) }
                     }
@@ -50,21 +51,26 @@ struct AreaEditorView: View {
                 }
             }
             .formStyle(.grouped)
-            if let problem {
+            .scrollDisabled(true)
+            .fixedSize(horizontal: false, vertical: true)
+            if let problem, triedToSave || takenTags.contains(tag) {
                 Label(problem, systemImage: "exclamationmark.circle").foregroundStyle(.red)
             }
             HStack {
                 if let area, area.folderPath == nil {
-                    Button("Archivar", role: .destructive) {
+                    Button("Archive", role: .destructive) {
                         area.isArchived = true
                         dismiss()
                     }
                 }
                 Spacer()
-                Button("Cancelar") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(area == nil ? "Crear" : "Guardar") { save() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(problem != nil)
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button(area == nil ? "Create" : "Save") {
+                    triedToSave = true
+                    if problem == nil { save() }
+                }
+                .buttonStyle(.glassProminent)
+                .keyboardShortcut(.defaultAction)
             }
         }
         .padding(22)
@@ -85,9 +91,9 @@ struct AreaEditorView: View {
     }
 
     private var problem: String? {
-        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Escribe un nombre." }
-        if tag.isEmpty { return "Escribe un tag." }
-        if takenTags.contains(tag) { return "Ya hay otra materia con #\(tag)." }
+        if name.trimmingCharacters(in: .whitespaces).isEmpty { return "Enter a name." }
+        if tag.isEmpty { return "Enter a tag." }
+        if takenTags.contains(tag) { return "Another course already uses #\(tag)." }
         return nil
     }
 

@@ -50,12 +50,12 @@ struct StoreErrorView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("No se pudo abrir la base de datos", systemImage: "exclamationmark.triangle")
+            Label("The database couldn’t be opened", systemImage: "exclamationmark.triangle")
         } description: {
-            Text("Tus datos no se han borrado. Archivo: \(StoreLoader.storeURL.path(percentEncoded: false))\n\n\(error.localizedDescription)")
+            Text("Your data hasn’t been deleted. File: \(StoreLoader.storeURL.path(percentEncoded: false))\n\n\(error.localizedDescription)")
                 .textSelection(.enabled)
         } actions: {
-            Button("Mostrar en Finder") {
+            Button("Show in Finder") {
                 NSWorkspace.shared.activateFileViewerSelecting([StoreLoader.storeURL])
             }
         }

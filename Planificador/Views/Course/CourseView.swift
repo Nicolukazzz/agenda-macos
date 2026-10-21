@@ -3,10 +3,10 @@ import SwiftData
 import SwiftUI
 
 enum CourseTab: String, CaseIterable, Identifiable {
-    case tasks = "Tareas"
-    case notes = "Notas"
-    case files = "Archivos"
-    case schedule = "Horario"
+    case tasks = "Tasks"
+    case notes = "Notes"
+    case files = "Files"
+    case schedule = "Schedule"
 
     var id: Self { self }
 }
@@ -26,13 +26,13 @@ struct CourseView: View {
             Group {
                 switch tab {
                 case .tasks:
-                    PlaceholderView(title: "Tareas", systemImage: "checklist", message: "Las tareas de #\(area.tag) llegan en la fase 3.")
+                    PlaceholderView(title: "Tasks", systemImage: "checklist", message: "Tasks for #\(area.tag) arrive in phase 3.")
                 case .notes:
-                    PlaceholderView(title: "Notas", systemImage: "note.text", message: "Las notas en Markdown llegan en la fase 4.")
+                    PlaceholderView(title: "Notes", systemImage: "note.text", message: "Markdown notes arrive in phase 4.")
                 case .files:
-                    PlaceholderView(title: "Archivos", systemImage: "folder", message: "El explorador de archivos llega en la fase 4.")
+                    PlaceholderView(title: "Files", systemImage: "folder", message: "The file browser arrives in phase 4.")
                 case .schedule:
-                    PlaceholderView(title: "Horario", systemImage: "clock", message: "El horario de clases llega en la fase 2.")
+                    ScheduleView(area: area)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -40,7 +40,7 @@ struct CourseView: View {
         .navigationTitle(area.name)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                Picker("Sección", selection: $tab) {
+                Picker("Section", selection: $tab) {
                     ForEach(CourseTab.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -53,36 +53,19 @@ struct CourseView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 14) {
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color(hex: area.colorHex).gradient)
-                .frame(width: 42, height: 42)
-                .overlay {
-                    Text(String(area.name.prefix(1)))
-                        .font(.title2.weight(.bold))
-                        .foregroundStyle(.white)
-                }
-            VStack(alignment: .leading, spacing: 3) {
-                Text(area.name).font(.title2.weight(.semibold))
-                HStack(spacing: 8) {
-                    Text("#\(area.tag)").font(.callout.monospaced()).foregroundStyle(.secondary)
-                    if let url = area.folderURL, !area.isFolderMissing {
-                        Button {
-                            NSWorkspace.shared.open(url)
-                        } label: {
-                            Label(url.lastPathComponent, systemImage: "folder")
-                                .font(.callout)
-                        }
-                        .buttonStyle(.link)
+        PageHeader(title: area.name) {
+            AreaBadge(name: area.name, colorHex: area.colorHex)
+        } trailing: {
+            HStack(spacing: Theme.Space.s) {
+                TagPill(tag: area.tag, colorHex: area.colorHex)
+                if let url = area.folderURL, !area.isFolderMissing {
+                    Button("Open Folder", systemImage: "folder") { NSWorkspace.shared.open(url) }
                         .help(url.path(percentEncoded: false))
-                    }
                 }
+                Button("Edit", systemImage: "pencil") { editing = true }
             }
-            Spacer()
-            Button("Editar", systemImage: "pencil") { editing = true }
+            .buttonStyle(.glass)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
     }
 }
 
@@ -94,13 +77,13 @@ struct MissingFolderBanner: View {
         HStack(spacing: 10) {
             Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 2) {
-                Text("No encuentro la carpeta de esta materia").font(.callout.weight(.semibold))
+                Text("This course’s folder can’t be found").font(.callout.weight(.semibold))
                 Text(area.folderPath ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
             }
             Spacer()
-            Button("Volver a vincular…") {
+            Button("Relink…") {
                 let start = area.semester.map { URL(filePath: $0.folderPath, directoryHint: .isDirectory) }
-                if let url = chooseFolder(startingAt: start, prompt: "Vincular") {
+                if let url = chooseFolder(startingAt: start, prompt: "Relink") {
                     area.folderPath = url.path(percentEncoded: false)
                 }
             }

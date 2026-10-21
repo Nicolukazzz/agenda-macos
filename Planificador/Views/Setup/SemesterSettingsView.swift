@@ -12,16 +12,16 @@ struct SemesterSettingsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Semestre \(semester.name)").font(.title3.weight(.semibold))
+            Text("Semester \(semester.name)").font(.title3.weight(.semibold))
             Form {
                 Section {
-                    LabeledContent("Periodo", value: periodText)
+                    LabeledContent("Period", value: periodText)
                 } footer: {
-                    Text("Cada semestre ocupa su mitad del año; tus clases fijas se repiten dentro de ese periodo.")
+                    Text("Each semester covers its half of the year; weekly classes repeat within it.")
                 }
                 Section {
                     if semester.breaks.isEmpty {
-                        Text("Sin recesos").foregroundStyle(.secondary)
+                        Text("No breaks").foregroundStyle(.secondary)
                     }
                     ForEach(Array(semester.breaks.enumerated()), id: \.offset) { index, range in
                         HStack {
@@ -37,20 +37,20 @@ struct SemesterSettingsView: View {
                         }
                     }
                     HStack {
-                        DatePicker("Desde", selection: $newBreakStart, displayedComponents: .date)
-                        DatePicker("Hasta", selection: $newBreakEnd, in: newBreakStart..., displayedComponents: .date)
-                        Button("Agregar") { addBreak() }
+                        DatePicker("From", selection: $newBreakStart, displayedComponents: .date)
+                        DatePicker("To", selection: $newBreakEnd, in: newBreakStart..., displayedComponents: .date)
+                        Button("Add") { addBreak() }
                     }
                 } header: {
-                    Text("Recesos y festivos")
+                    Text("Breaks and Holidays")
                 } footer: {
-                    Text("Opcional. Las clases fijas no aparecen en estos días (semana de receso, festivos).")
+                    Text("Optional. Weekly classes don’t appear on these days (recess week, holidays).")
                 }
             }
             .formStyle(.grouped)
             HStack {
                 Spacer()
-                Button("Listo") { dismiss() }.keyboardShortcut(.defaultAction)
+                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(22)
@@ -68,12 +68,12 @@ struct SemesterSettingsView: View {
 
     private var periodText: String {
         let style = Date.FormatStyle(date: .long, time: .omitted)
-        return "\(semester.startDate.formatted(style)) – \(semester.endDate.formatted(style))"
+        return "\(semester.startDate.agenda(style)) – \(semester.endDate.agenda(style))"
     }
 
     private func format(_ range: DateInterval) -> String {
         let style = Date.FormatStyle(date: .abbreviated, time: .omitted)
         let lastDay = range.end.addingTimeInterval(-1)
-        return "\(range.start.formatted(style)) – \(lastDay.formatted(style))"
+        return "\(range.start.agenda(style)) – \(lastDay.agenda(style))"
     }
 }
