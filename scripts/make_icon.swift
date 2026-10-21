@@ -38,14 +38,14 @@ let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { r
         NSBezierPath(roundedRect: NSRect(x: x - 22, y: page.maxY - 60, width: 44, height: 110), xRadius: 22, yRadius: 22).fill()
     }
 
-    // Checkmark
+    // Checkmark: thick straight strokes with round caps and a round join, so tips and corner are soft.
     let check = NSBezierPath()
-    check.lineWidth = 58
+    check.lineWidth = 84
     check.lineCapStyle = .round
     check.lineJoinStyle = .round
-    check.move(to: NSPoint(x: page.minX + 125, y: page.minY + 185))
-    check.line(to: NSPoint(x: page.minX + 215, y: page.minY + 95))
-    check.line(to: NSPoint(x: page.maxX - 115, y: page.minY + 280))
+    check.move(to: NSPoint(x: page.minX + 140, y: page.minY + 205))
+    check.line(to: NSPoint(x: page.minX + 225, y: page.minY + 120))
+    check.line(to: NSPoint(x: page.maxX - 130, y: page.minY + 285))
     NSColor(srgbRed: 0.33, green: 0.45, blue: 0.98, alpha: 1).setStroke()
     check.stroke()
     return true
