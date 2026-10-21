@@ -96,19 +96,6 @@ struct TaskChip: View {
     }
 }
 
-/// Compact class marker in month cells: the course tag in its color.
-struct ClassTag: View {
-    let item: CalendarItem
-    var onOpen: (CalendarItem) -> Void
-
-    var body: some View {
-        TagPill(tag: item.block.area?.tag ?? "•", colorHex: item.colorHex, compact: true)
-            .help("\(item.start.agenda(date: .omitted, time: .shortened)) · \(item.block.title)")
-            .onTapGesture { onOpen(item) }
-            .accessibilityAddTraits(.isButton)
-    }
-}
-
 /// An event as a full card row (Today view, lists): color bar, time range, title, room.
 struct EventRow: View {
     let item: CalendarItem

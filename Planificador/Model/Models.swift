@@ -94,6 +94,12 @@ final class Block {
     var exceptionDates: [Date]
     var linkedTask: TaskItem?
 
+    /// Part of the class timetable (a course's weekly slot from the Schedule tab or an import).
+    /// The month view hides these; it shows only what the user creates (tasks and one-off events).
+    var isClassSchedule: Bool {
+        recurrence != nil && area?.folderPath != nil
+    }
+
     init(title: String, start: Date, end: Date, area: Area? = nil, recurrence: WeeklyRecurrence? = nil, location: String = "", notes: String = "") {
         self.title = title
         self.start = start

@@ -34,7 +34,7 @@ struct CalendarView: View {
             case .month:
                 MonthView(
                     anchor: appState.calendarAnchor, items: items, tasks: tasks,
-                    showClasses: appState.showClassesInMonth, math: math,
+                    math: math,
                     onOpen: { editorTarget = .existing($0) },
                     onOpenTask: { editingTask = $0 },
                     onCreate: { day in editorTarget = newTarget(on: day) },
@@ -100,12 +100,6 @@ struct CalendarView: View {
             .fixedSize()
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            if appState.calendarMode == .month {
-                Toggle(isOn: $appState.showClassesInMonth.animation(Theme.Motion.snappy)) {
-                    Label("Show Classes", systemImage: "graduationcap")
-                }
-                .help("Show full class events instead of compact tags")
-            }
             Button("New Event", systemImage: "plus") {
                 editorTarget = newTarget(on: appState.calendarMode == .month && !math.isSameMonth(appState.calendarAnchor, .now) ? appState.calendarAnchor : .now)
             }

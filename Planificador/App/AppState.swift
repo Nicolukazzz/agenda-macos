@@ -18,9 +18,6 @@ final class AppState {
         didSet { UserDefaults.standard.set(calendarMode.rawValue, forKey: "calendarMode") }
     }
     var calendarAnchor = Date.now
-    var showClassesInMonth: Bool {
-        didSet { UserDefaults.standard.set(showClassesInMonth, forKey: "showClassesInMonth") }
-    }
 
     /// Root that holds the semester folders, e.g. `~/Documents/PUJ/Classes`.
     var classesRootPath: String {
@@ -34,7 +31,6 @@ final class AppState {
         let defaults = UserDefaults.standard
         classesRootPath = defaults.string(forKey: Self.rootKey) ?? Self.defaultRootPath
         calendarMode = defaults.string(forKey: "calendarMode").flatMap(CalendarMode.init(rawValue:)) ?? .month
-        showClassesInMonth = defaults.object(forKey: "showClassesInMonth") as? Bool ?? false
     }
 
     var classesRootURL: URL {

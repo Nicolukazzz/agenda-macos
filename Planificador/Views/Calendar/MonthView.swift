@@ -2,13 +2,12 @@ import AgendaCore
 import SwiftData
 import SwiftUI
 
-/// Month grid (main calendar view). Deadlines first, then appointments; classes are
-/// compact color dots unless "Show Classes" is on, so the month stays readable.
+/// Month grid (main calendar view): what the user creates — deadlines first, then events.
+/// The class timetable is left to the week view so the month stays about plans and due dates.
 struct MonthView: View {
     let anchor: Date
     let items: [CalendarItem]
     let tasks: [TaskItem]
-    let showClasses: Bool
     let math: CalendarMath
     var onOpen: (CalendarItem) -> Void
     var onOpenTask: (TaskItem) -> Void
@@ -34,9 +33,8 @@ struct MonthView: View {
                                     isInMonth: math.isSameMonth(day, anchor),
                                     isToday: math.isSameDay(day, .now),
                                     isWeekend: isWeekend(day),
-                                    items: items.filter { math.isSameDay($0.start, day) },
+                                    items: items.filter { !$0.block.isClassSchedule && math.isSameDay($0.start, day) },
                                     tasks: tasks.filter { $0.dueDate.map { math.isSameDay($0, day) } ?? false },
-                                    showClasses: showClasses,
                                     height: rowHeight,
                                     onOpen: onOpen,
                                     onOpenTask: onOpenTask,
@@ -80,7 +78,6 @@ private struct MonthDayCell: View {
     let isWeekend: Bool
     let items: [CalendarItem]
     let tasks: [TaskItem]
-    let showClasses: Bool
     let height: CGFloat
     var onOpen: (CalendarItem) -> Void
     var onOpenTask: (TaskItem) -> Void
@@ -93,10 +90,7 @@ private struct MonthDayCell: View {
     private static let lineHeight: CGFloat = 18
     private static let headerHeight: CGFloat = 26
 
-    private var classes: [CalendarItem] { items.filter(\.isRecurring) }
-    private var events: [CalendarItem] { showClasses ? items : items.filter { !$0.isRecurring } }
-
-    /// Rows available below the day number (one reserved for class dots or "+N more").
+    /// Rows available below the day number.
     private var capacity: Int { max(0, Int((height - Self.headerHeight - 4) / Self.lineHeight)) }
 
     var body: some View {
@@ -150,10 +144,8 @@ private struct MonthDayCell: View {
 
     @ViewBuilder
     private var content: some View {
-        let showDots = !showClasses && !classes.isEmpty
-        let rows = capacity - (showDots ? 1 : 0)
-        let entries: [Entry] = tasks.map(Entry.task) + events.map(Entry.event)
-        let visible = entries.prefix(max(0, entries.count > rows ? rows - 1 : rows))
+        let entries: [Entry] = tasks.map(Entry.task) + items.map(Entry.event)
+        let visible = entries.prefix(max(0, entries.count > capacity ? capacity - 1 : capacity))
         let hidden = entries.count - visible.count
 
         ForEach(visible) { entry in
@@ -170,16 +162,6 @@ private struct MonthDayCell: View {
                 .font(Theme.Font.chip)
                 .foregroundStyle(.secondary)
                 .padding(.leading, Theme.Space.xs)
-        }
-
-        if showDots {
-            HStack(spacing: 3) {
-                ForEach(classes) { ClassTag(item: $0, onOpen: onOpen) }
-            }
-            .padding(.leading, Theme.Space.xxs)
-            .frame(height: 14, alignment: .leading)
-            .clipped()
-            .opacity(isInMonth ? 1 : 0.6)
         }
     }
 
