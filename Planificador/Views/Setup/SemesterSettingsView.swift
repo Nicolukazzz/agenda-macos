@@ -36,10 +36,14 @@ struct SemesterSettingsView: View {
                             .foregroundStyle(.red)
                         }
                     }
-                    HStack {
-                        DatePicker("From", selection: $newBreakStart, displayedComponents: .date)
-                        DatePicker("To", selection: $newBreakEnd, in: newBreakStart..., displayedComponents: .date)
-                        Button("Add") { addBreak() }
+                    HStack(spacing: Theme.Space.s) {
+                        DatePill(date: $newBreakStart)
+                        Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+                        DatePill(date: $newBreakEnd)
+                        Spacer()
+                        Button("Add", systemImage: "plus") { addBreak() }
+                            .buttonStyle(.glassProminent)
+                            .disabled(newBreakEnd < newBreakStart)
                     }
                 } header: {
                     Text("Breaks and Holidays")
@@ -50,7 +54,10 @@ struct SemesterSettingsView: View {
             .formStyle(.grouped)
             HStack {
                 Spacer()
-                Button("Done") { dismiss() }.keyboardShortcut(.defaultAction)
+                Button("Done") { dismiss() }
+                    .buttonStyle(.glassProminent)
+                    .controlSize(.large)
+                    .keyboardShortcut(.defaultAction)
             }
         }
         .padding(22)

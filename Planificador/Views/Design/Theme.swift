@@ -137,6 +137,15 @@ enum Weekdays {
         Calendar.autoupdatingCurrent.standaloneWeekdaySymbols[weekday - 1]
     }
 
+    /// One- or two-letter label (`M`, `Tu`…) that stays unambiguous within the week.
+    static func initial(_ weekday: Int) -> String {
+        let shorts = order.map { short($0) }
+        let mine = short(weekday)
+        let first = String(mine.prefix(1))
+        let clashes = shorts.filter { $0.prefix(1) == first }.count > 1
+        return clashes ? String(mine.prefix(2)) : first
+    }
+
     static func short(_ weekday: Int) -> String {
         Calendar.autoupdatingCurrent.shortStandaloneWeekdaySymbols[weekday - 1]
     }

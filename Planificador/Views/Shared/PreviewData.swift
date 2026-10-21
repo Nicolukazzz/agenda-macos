@@ -79,3 +79,9 @@ enum PreviewData {
     return BlockEditorView(target: .new(start: start, end: start.addingTimeInterval(3600), area: nil), semester: semester)
         .modelContainer(PreviewData.container)
 }
+
+#Preview("Schedule") {
+    ScheduleView(area: PreviewData.firstArea)
+        .modelContainer(PreviewData.container)
+        .frame(width: 760, height: 620)
+}

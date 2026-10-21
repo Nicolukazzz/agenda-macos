@@ -61,16 +61,18 @@ struct ScheduleView: View {
                     }
                     Spacer()
                     Button("Edit") { editing = firstItem(of: block) }
+                        .buttonStyle(.glass)
                         .disabled(firstItem(of: block) == nil)
                     Button(role: .destructive) {
                         withAnimation(Theme.Motion.snappy) { context.delete(block) }
                     } label: {
                         Image(systemName: "trash")
                     }
+                    .buttonStyle(.glass)
                     .help("Remove this time slot")
                 }
                 .padding(Theme.Space.m)
-                .background(.background.secondary, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+                .background(.background.secondary, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
             }
         }
     }
@@ -78,26 +80,32 @@ struct ScheduleView: View {
     private var addForm: some View {
         VStack(alignment: .leading, spacing: Theme.Space.m) {
             Text("Add Time Slot").font(Theme.Font.sectionTitle)
-            HStack(spacing: Theme.Space.xs) {
-                ForEach(Weekdays.order, id: \.self) { weekday in
-                    Toggle(Weekdays.short(weekday), isOn: Binding(
-                        get: { weekdays.contains(weekday) },
-                        set: { if $0 { weekdays.insert(weekday) } else { weekdays.remove(weekday) } }))
-                    .toggleStyle(.button)
-                    .help(Weekdays.name(weekday))
+            EditorCard {
+                EditorRow(icon: "calendar.day.timeline.left") {
+                    WeekdayCircles(selection: $weekdays, tint: Color(hex: area.colorHex))
+                }
+                EditorDivider()
+                EditorRow(icon: "clock") {
+                    Text("Time")
+                    Spacer()
+                    TimePill(time: Binding(
+                        get: { startTime },
+                        set: { newValue in
+                            endTime = newValue.addingTimeInterval(endTime.timeIntervalSince(startTime))
+                            startTime = newValue
+                        }), showsIcon: false)
+                    Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+                    TimePill(time: $endTime, showsIcon: false)
+                }
+                EditorDivider()
+                EditorRow(icon: "mappin.and.ellipse") {
+                    TextField("Room (optional)", text: $location).textFieldStyle(.plain)
                 }
             }
-            HStack(spacing: Theme.Space.l) {
-                DatePicker("From", selection: $startTime, displayedComponents: .hourAndMinute)
-                DatePicker("To", selection: $endTime, displayedComponents: .hourAndMinute)
-            }
-            .fixedSize()
-            TextField("Room (optional)", text: $location)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 260)
-            HStack {
+            HStack(spacing: Theme.Space.m) {
                 Button("Add to Schedule", systemImage: "plus") { add() }
                     .buttonStyle(.glassProminent)
+                    .controlSize(.large)
                     .disabled(weekdays.isEmpty || math.minutesIntoDay(endTime) <= math.minutesIntoDay(startTime) || area.semester == nil)
                 if let semester = area.semester {
                     Text("Repeats until \(semester.endDate.agenda(date: .long, time: .omitted)).")
@@ -105,8 +113,6 @@ struct ScheduleView: View {
                 }
             }
         }
-        .padding(Theme.Space.l)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 
     private func add() {

@@ -8,6 +8,8 @@ struct TagCompletionField: View {
     let placeholder: String
     @Binding var text: String
     let areas: [Area]
+    /// Large borderless field for the main title of an editor.
+    var prominent = false
     var onSubmit: () -> Void = {}
 
     @State private var highlighted = 0
@@ -24,8 +26,7 @@ struct TagCompletionField: View {
     }
 
     var body: some View {
-        TextField(placeholder, text: $text)
-            .textFieldStyle(.roundedBorder)
+        field
             .focused($focused)
             .onSubmit {
                 if !suggestions.isEmpty { accept(suggestions[clampedIndex]) } else { onSubmit() }
@@ -50,12 +51,24 @@ struct TagCompletionField: View {
             .overlay(alignment: .topLeading) {
                 if focused && !suggestions.isEmpty {
                     suggestionList
-                        .offset(y: 30)
+                        .offset(y: prominent ? 38 : 30)
                         .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
                 }
             }
             .animation(Theme.Motion.snappy, value: suggestions.isEmpty)
             .zIndex(10)
+    }
+
+    @ViewBuilder
+    private var field: some View {
+        if prominent {
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(.title2, design: .rounded).weight(.semibold))
+        } else {
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.roundedBorder)
+        }
     }
 
     private var clampedIndex: Int { min(max(highlighted, 0), max(suggestions.count - 1, 0)) }
