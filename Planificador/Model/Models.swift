@@ -27,6 +27,14 @@ final class Semester {
         self.createdAt = .now
     }
 
+    /// Keeps the dates on the term's half of the year (`AAAA-1` Jan–Jun, `AAAA-2` Jul–Dec).
+    /// Also fixes semesters created by the first build, which asked for exact class dates.
+    func normalizeDates() {
+        guard let range = SemesterDates.range(for: name) else { return }
+        if startDate != range.start { startDate = range.start }
+        if endDate != range.end { endDate = range.end }
+    }
+
     var sortedAreas: [Area] {
         areas.filter { !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
     }

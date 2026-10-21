@@ -1,3 +1,4 @@
+import AgendaCore
 import SwiftData
 import SwiftUI
 
@@ -13,9 +14,10 @@ struct SemesterSettingsView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Semestre \(semester.name)").font(.title3.weight(.semibold))
             Form {
-                Section("Fechas") {
-                    DatePicker("Inicio de clases", selection: $semester.startDate, displayedComponents: .date)
-                    DatePicker("Fin de clases", selection: $semester.endDate, in: semester.startDate..., displayedComponents: .date)
+                Section {
+                    LabeledContent("Periodo", value: periodText)
+                } footer: {
+                    Text("Cada semestre ocupa su mitad del año; tus clases fijas se repiten dentro de ese periodo.")
                 }
                 Section {
                     if semester.breaks.isEmpty {
@@ -42,7 +44,7 @@ struct SemesterSettingsView: View {
                 } header: {
                     Text("Recesos y festivos")
                 } footer: {
-                    Text("Las clases fijas no aparecen en estos días.")
+                    Text("Opcional. Las clases fijas no aparecen en estos días (semana de receso, festivos).")
                 }
             }
             .formStyle(.grouped)
@@ -62,6 +64,11 @@ struct SemesterSettingsView: View {
         let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: newBreakEnd)) ?? start
         semester.breaks.append(DateInterval(start: start, end: max(start, end)))
         semester.breaks.sort { $0.start < $1.start }
+    }
+
+    private var periodText: String {
+        let style = Date.FormatStyle(date: .long, time: .omitted)
+        return "\(semester.startDate.formatted(style)) – \(semester.endDate.formatted(style))"
     }
 
     private func format(_ range: DateInterval) -> String {

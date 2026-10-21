@@ -8,6 +8,7 @@ struct RootView: View {
     var body: some View {
         if let semester = activeSemesters.first {
             MainSplitView(semester: semester)
+                .task(id: semester.persistentModelID) { semester.normalizeDates() }
         } else {
             SetupWizardView()
         }

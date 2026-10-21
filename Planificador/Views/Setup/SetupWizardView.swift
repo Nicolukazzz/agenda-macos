@@ -13,8 +13,6 @@ struct SetupWizardView: View {
     @State private var step = 0
     @State private var detected: [SemesterFolder] = []
     @State private var selectedSemester: String?
-    @State private var startDate = Date.now
-    @State private var endDate = Date.now
     @State private var drafts: [CourseDraft] = []
     @State private var scanError: String?
 
@@ -25,7 +23,6 @@ struct SetupWizardView: View {
             Group {
                 switch step {
                 case 0: rootStep
-                case 1: datesStep
                 default: coursesStep
                 }
             }
@@ -48,11 +45,11 @@ struct SetupWizardView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(semesters.isEmpty ? "Bienvenido a Agenda" : "Nuevo semestre")
                     .font(.title2.weight(.semibold))
-                Text(["Elige tu carpeta de clases", "Fechas del semestre", "Revisa tus materias"][step])
+                Text(["Elige tu carpeta de clases", "Revisa tus materias"][step])
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Text("Paso \(step + 1) de 3")
+            Text("Paso \(step + 1) de 2")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -66,7 +63,7 @@ struct SetupWizardView: View {
                 Button("Atrás") { withAnimation(.smooth) { step -= 1 } }
             }
             Spacer()
-            if step < 2 {
+            if step < 1 {
                 Button("Siguiente") { advance() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(step == 0 && selectedSemester == nil)
@@ -109,7 +106,7 @@ struct SetupWizardView: View {
                 Label(scanError, systemImage: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
             } else if detected.isEmpty {
-                Label("No encontré carpetas de semestre (formato AAAA-N) aquí.", systemImage: "questionmark.folder")
+                Label("No encontré carpetas de semestre aquí (formato 2026-1 o 2026-2).", systemImage: "questionmark.folder")
                     .foregroundStyle(.secondary)
             } else {
                 Text("Semestre a configurar").font(.headline)
@@ -125,24 +122,7 @@ struct SetupWizardView: View {
         }
     }
 
-    // MARK: Step 2 — dates
-
-    private var datesStep: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Tus clases fijas se repetirán cada semana entre estas fechas y dejarán de aparecer solas cuando termine el semestre. Los recesos y festivos se agregan después en los ajustes del semestre.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Form {
-                DatePicker("Inicio de clases", selection: $startDate, displayedComponents: .date)
-                DatePicker("Fin de clases", selection: $endDate, in: startDate..., displayedComponents: .date)
-            }
-            .formStyle(.grouped)
-            .frame(maxWidth: 420)
-            Spacer()
-        }
-    }
-
-    // MARK: Step 3 — courses
+    // MARK: Step 2 — courses
 
     private var coursesStep: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -181,6 +161,7 @@ struct SetupWizardView: View {
     private func scan() {
         do {
             detected = try FolderScanner.semesters(in: appState.classesRootURL)
+                .filter { SemesterDates.range(for: $0.name) != nil }
             let configured = Set(semesters.map(\.name))
             selectedSemester = detected.first { !configured.contains($0.name) }?.name ?? detected.first?.name
             scanError = nil
@@ -193,10 +174,6 @@ struct SetupWizardView: View {
 
     private func advance() {
         if step == 0, let name = selectedSemester {
-            if let guess = SemesterDates.guess(for: name) {
-                startDate = guess.start
-                endDate = guess.end
-            }
             loadDrafts(for: name)
         }
         withAnimation(.smooth) { step += 1 }
@@ -222,14 +199,17 @@ struct SetupWizardView: View {
     private var draftsAreValid: Bool { draftProblem == nil }
 
     private func create() {
-        guard let name = selectedSemester, let folder = detected.first(where: { $0.name == name }) else { return }
+        guard
+            let name = selectedSemester,
+            let folder = detected.first(where: { $0.name == name }),
+            let range = SemesterDates.range(for: name)
+        else { return }
         for existing in semesters { existing.isActive = false }
-        let calendar = Calendar.current
         let semester = Semester(
             name: name,
             folderPath: folder.url.path(percentEncoded: false),
-            startDate: calendar.startOfDay(for: startDate),
-            endDate: calendar.startOfDay(for: endDate)
+            startDate: range.start,
+            endDate: range.end
         )
         context.insert(semester)
         for (index, draft) in drafts.filter(\.include).enumerated() {

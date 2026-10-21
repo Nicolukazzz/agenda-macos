@@ -66,12 +66,26 @@ struct TagSuggesterTests {
 }
 
 struct SemesterDatesTests {
-    @Test func guessesSecondTerm() throws {
+    let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "America/Bogota")!
-        let dates = try #require(SemesterDates.guess(for: "2026-2", calendar: calendar))
-        #expect(calendar.component(.month, from: dates.start) == 7)
-        #expect(calendar.component(.month, from: dates.end) == 11)
-        #expect(SemesterDates.guess(for: "sin-fecha") == nil)
+        return calendar
+    }()
+
+    @Test func secondTermIsJulyToDecember() throws {
+        let dates = try #require(SemesterDates.range(for: "2026-2", calendar: calendar))
+        #expect(calendar.dateComponents([.month, .day], from: dates.start) == DateComponents(month: 7, day: 1))
+        #expect(calendar.dateComponents([.month, .day], from: dates.end) == DateComponents(month: 12, day: 31))
+    }
+
+    @Test func firstTermIsJanuaryToJune() throws {
+        let dates = try #require(SemesterDates.range(for: "2027-1", calendar: calendar))
+        #expect(calendar.dateComponents([.year, .month, .day], from: dates.start) == DateComponents(year: 2027, month: 1, day: 1))
+        #expect(calendar.dateComponents([.month, .day], from: dates.end) == DateComponents(month: 6, day: 30))
+    }
+
+    @Test func rejectsOtherNames() {
+        #expect(SemesterDates.range(for: "sin-fecha") == nil)
+        #expect(SemesterDates.range(for: "2026-3") == nil)
     }
 }

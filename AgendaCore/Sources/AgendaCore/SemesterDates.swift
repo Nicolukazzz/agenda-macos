@@ -1,15 +1,16 @@
 import Foundation
 
-/// Default term dates used to prefill the setup wizard; the user can always edit them.
+/// A term covers its half of the year: `AAAA-1` is January–June and `AAAA-2` is July–December.
+/// The user doesn't need exact start dates; recurring classes simply live inside this range.
 public enum SemesterDates {
-    /// `2026-1` → late January to end of May; `2026-2` → late July to end of November.
-    public static func guess(for name: String, calendar: Calendar = .current) -> (start: Date, end: Date)? {
+    /// First day of the term and last day (inclusive, at start of day).
+    public static func range(for name: String, calendar: Calendar = .current) -> (start: Date, end: Date)? {
         let parts = name.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 2 else { return nil }
+        guard parts.count == 2, (1...2).contains(parts[1]) else { return nil }
         let (year, term) = (parts[0], parts[1])
-        let (startMonth, startDay, endMonth, endDay) = term == 1 ? (1, 26, 5, 30) : (7, 27, 11, 28)
+        let (startMonth, endMonth, endDay) = term == 1 ? (1, 6, 30) : (7, 12, 31)
         guard
-            let start = calendar.date(from: DateComponents(year: year, month: startMonth, day: startDay)),
+            let start = calendar.date(from: DateComponents(year: year, month: startMonth, day: 1)),
             let end = calendar.date(from: DateComponents(year: year, month: endMonth, day: endDay))
         else { return nil }
         return (start, end)
