@@ -17,22 +17,38 @@ struct TodayView: View {
         return CalendarFeed.items(for: blocks, in: DateInterval(start: start, end: math.add(days: 1, to: start)), breaks: semester.breaks, math: math)
     }
 
+    /// A titled card of today's calendar items (classes or the user's own events).
+    private func itemSection(_ title: String, detail: String? = nil, items: [CalendarItem], emptyIcon: String, emptyText: String) -> some View {
+        VStack(alignment: .leading, spacing: Theme.Space.s) {
+            SectionHeader(title, detail: detail)
+            Card {
+                if items.isEmpty {
+                    CardRow(icon: emptyIcon) { Text(emptyText).foregroundStyle(.secondary) }
+                }
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    if index > 0 { CardDivider() }
+                    EventRow(item: item) { editingBlock = $0 }
+                }
+            }
+        }
+    }
+
     var body: some View {
         PageContent {
             QuickAddBar(areas: semester.sortedAreas)
 
-            VStack(alignment: .leading, spacing: Theme.Space.s) {
-                SectionHeader("Schedule", detail: Date.now.agenda(.dateTime.weekday(.wide).day().month(.wide)))
-                Card {
-                    if todayItems.isEmpty {
-                        CardRow(icon: "sun.max") { Text("No classes or events today.").foregroundStyle(.secondary) }
-                    }
-                    ForEach(Array(todayItems.enumerated()), id: \.element.id) { index, item in
-                        if index > 0 { CardDivider() }
-                        EventRow(item: item) { editingBlock = $0 }
-                    }
-                }
-            }
+            itemSection(
+                "Classes",
+                detail: Date.now.agenda(.dateTime.weekday(.wide).day().month(.wide)),
+                items: todayItems.filter(\.block.isClassSchedule),
+                emptyIcon: "graduationcap",
+                emptyText: "No classes today.")
+
+            itemSection(
+                "Schedule",
+                items: todayItems.filter { !$0.block.isClassSchedule },
+                emptyIcon: "calendar",
+                emptyText: "Nothing else scheduled today.")
 
             TaskListView(buckets: [.overdue, .today], emptyMessage: "Nothing due today.") { editingTask = $0 }
         }
