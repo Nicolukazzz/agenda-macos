@@ -44,6 +44,14 @@ enum PreviewData {
         return container
     }()
 
+    static let sampleClassesRoot: URL = {
+        let root = FileManager.default.temporaryDirectory.appending(path: "agenda-preview-classes")
+        for folder in ["2026-2/BD", "2026-2/Sistemas Operativos", "2026-2/Gestión TI", "2026-1/Calculo"] {
+            try? FileManager.default.createDirectory(at: root.appending(path: folder), withIntermediateDirectories: true)
+        }
+        return root
+    }()
+
     static var firstArea: Area {
         try! container.mainContext.fetch(FetchDescriptor<Area>(sortBy: [SortDescriptor(\.sortOrder)])).first!
     }
@@ -68,8 +76,11 @@ enum PreviewData {
 }
 
 #Preview("Wizard") {
-    SetupWizardView()
-        .environment(AppState())
+    // Previews can't answer macOS's Documents-folder permission prompt, so they read a temporary sample layout.
+    let state = AppState()
+    state.classesRootPath = PreviewData.sampleClassesRoot.path(percentEncoded: false)
+    return SetupWizardView()
+        .environment(state)
         .modelContainer(PreviewData.container)
 }
 

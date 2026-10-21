@@ -44,24 +44,71 @@ struct BlockEditorView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.l) {
-            titleSection
-            whenCard
-            repeatCard
-            detailsCard
+        SheetScaffold(eyebrow: existing == nil ? "New Event" : "Edit Event") {
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
+                TagCompletionField(placeholder: "Title", text: $title, areas: semester.sortedAreas, prominent: true, onSubmit: attemptSave)
+                CourseChips(selection: $area, areas: semester.sortedAreas)
+            }
+            .zIndex(1)
 
-            if let problem, triedToSave || newEnd <= newStart {
-                Label(problem, systemImage: "exclamationmark.circle.fill")
-                    .foregroundStyle(.red)
-                    .font(.callout)
-                    .transition(.opacity)
+            Card {
+                CardRow(icon: "calendar") {
+                    Text("Day")
+                    Spacer()
+                    DatePill(date: $day, showsIcon: false)
+                }
+                CardDivider()
+                CardRow(icon: "clock") {
+                    Text("Time")
+                    Spacer()
+                    // Moving the start keeps the duration, like Calendar does.
+                    TimePill(time: Binding(
+                        get: { startTime },
+                        set: { newValue in
+                            endTime = newValue.addingTimeInterval(endTime.timeIntervalSince(startTime))
+                            startTime = newValue
+                        }), showsIcon: false)
+                    Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+                    TimePill(time: $endTime, showsIcon: false)
+                }
+                CardDivider()
+                CardRow(icon: "hourglass") {
+                    DurationChips(start: newStart, end: Binding(get: { newEnd }, set: { endTime = $0 }))
+                }
             }
 
-            footer
+            Card {
+                CardRow(icon: "repeat", iconColor: repeats ? .accentColor : .secondary) {
+                    CardToggle(title: "Repeats every week", isOn: $repeats)
+                }
+                if repeats {
+                    CardDivider()
+                    CardRow(icon: "calendar.day.timeline.left") {
+                        WeekdayCircles(selection: $weekdays, tint: area.map { Color(hex: $0.colorHex) } ?? .accentColor)
+                    }
+                    CardNote(text: "Until the end of semester \(semester.name). Skips breaks.")
+                }
+            }
+
+            Card {
+                CardRow(icon: "mappin.and.ellipse") { CardTextField(placeholder: "Location", text: $location) }
+                CardDivider()
+                CardRow(icon: "text.alignleft") { CardTextField(placeholder: "Notes", text: $notes, axis: .vertical) }
+            }
+
+            if let problem, triedToSave || newEnd <= newStart {
+                ValidationMessage(text: problem)
+            }
+        } footer: {
+            ActionBar(
+                destructiveTitle: existing == nil ? nil : "Delete",
+                onDestructive: {
+                    if existing?.isRecurring == true { askingDeleteScope = true } else { deleteNow(.allEvents) }
+                },
+                onCancel: { dismiss() },
+                primaryTitle: "Save",
+                onPrimary: attemptSave)
         }
-        .padding(Theme.Space.xl)
-        .frame(width: 540)
-        .fixedSize(horizontal: false, vertical: true)
         .animation(Theme.Motion.snappy, value: repeats)
         .onAppear(perform: load)
         .confirmationDialog("This event repeats", isPresented: $askingScope) {
@@ -74,106 +121,6 @@ struct BlockEditorView: View {
             Button("Delete Only This Event", role: .destructive) { deleteNow(.onlyThis) }
             Button("Delete All Events", role: .destructive) { deleteNow(.allEvents) }
         }
-    }
-
-    // MARK: Sections
-
-    private var titleSection: some View {
-        VStack(alignment: .leading, spacing: Theme.Space.s) {
-            Text(existing == nil ? "New Event" : "Edit Event")
-                .font(Theme.Font.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .textCase(.uppercase)
-            TagCompletionField(placeholder: "Title", text: $title, areas: semester.sortedAreas, prominent: true, onSubmit: attemptSave)
-            CourseChips(selection: $area, areas: semester.sortedAreas)
-        }
-        .zIndex(1)
-    }
-
-    private var whenCard: some View {
-        EditorCard {
-            EditorRow(icon: "calendar") {
-                Text("Day")
-                Spacer()
-                DatePill(date: $day, showsIcon: false)
-            }
-            EditorDivider()
-            EditorRow(icon: "clock") {
-                Text("Time")
-                Spacer()
-                // Moving the start keeps the duration, like Calendar does.
-                TimePill(time: Binding(
-                    get: { startTime },
-                    set: { newValue in
-                        endTime = newValue.addingTimeInterval(endTime.timeIntervalSince(startTime))
-                        startTime = newValue
-                    }), showsIcon: false)
-                Image(systemName: "arrow.right").foregroundStyle(.tertiary)
-                TimePill(time: $endTime, showsIcon: false)
-            }
-            EditorDivider()
-            EditorRow(icon: "hourglass") {
-                DurationChips(start: newStart, end: Binding(
-                    get: { newEnd },
-                    set: { endTime = $0 }))
-            }
-        }
-    }
-
-    private var repeatCard: some View {
-        EditorCard {
-            EditorRow(icon: "repeat", iconColor: repeats ? .accentColor : .secondary) {
-                Text("Repeats every week")
-                Spacer()
-                Toggle("Repeats every week", isOn: $repeats)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-            }
-            if repeats {
-                EditorDivider()
-                EditorRow(icon: "calendar.day.timeline.left") {
-                    WeekdayCircles(selection: $weekdays, tint: area.map { Color(hex: $0.colorHex) } ?? .accentColor)
-                }
-                Text("Until the end of semester \(semester.name). Skips breaks.")
-                    .font(Theme.Font.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 48)
-                    .padding(.bottom, Theme.Space.s + 2)
-            }
-        }
-    }
-
-    private var detailsCard: some View {
-        EditorCard {
-            EditorRow(icon: "mappin.and.ellipse") {
-                TextField("Location", text: $location).textFieldStyle(.plain)
-            }
-            EditorDivider()
-            EditorRow(icon: "text.alignleft") {
-                TextField("Notes", text: $notes, axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .lineLimit(1...5)
-            }
-        }
-    }
-
-    private var footer: some View {
-        HStack {
-            if existing != nil {
-                Button("Delete", systemImage: "trash", role: .destructive) {
-                    if existing?.isRecurring == true { askingDeleteScope = true } else { deleteNow(.allEvents) }
-                }
-                .buttonStyle(.glass)
-            }
-            Spacer()
-            Button("Cancel") { dismiss() }
-                .buttonStyle(.glass)
-                .keyboardShortcut(.cancelAction)
-            Button("Save") { attemptSave() }
-                .buttonStyle(.glassProminent)
-                .keyboardShortcut(.defaultAction)
-        }
-        .controlSize(.large)
     }
 
     // MARK: State

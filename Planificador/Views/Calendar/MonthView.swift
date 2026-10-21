@@ -170,19 +170,8 @@ private struct MonthDayCell: View {
         }
 
         if showDots {
-            // Compact class markers: the course tag in its color, in time order.
             HStack(spacing: 3) {
-                ForEach(classes) { item in
-                    Text(item.block.area?.tag ?? "•")
-                        .font(.system(size: 9, weight: .semibold, design: .rounded))
-                        .lineLimit(1)
-                        .padding(.horizontal, 4)
-                        .frame(height: 13)
-                        .foregroundStyle(Color(hex: item.colorHex))
-                        .background(Theme.Palette.eventFill(item.colorHex), in: Capsule())
-                        .help("\(item.start.agenda(date: .omitted, time: .shortened)) · \(item.block.title)")
-                        .onTapGesture { onOpen(item) }
-                }
+                ForEach(classes) { ClassTag(item: $0, onOpen: onOpen) }
             }
             .padding(.leading, Theme.Space.xxs)
             .frame(height: 14, alignment: .leading)
@@ -201,73 +190,5 @@ private struct MonthDayCell: View {
             case .event(let item): item.id
             }
         }
-    }
-}
-
-/// One-line event in the month grid: color bar, time, title. Draggable to another day.
-struct EventChip: View {
-    let item: CalendarItem
-    var onOpen: (CalendarItem) -> Void
-
-    var body: some View {
-        HStack(spacing: Theme.Space.xs) {
-            RoundedRectangle(cornerRadius: 1.5)
-                .fill(Color(hex: item.colorHex))
-                .frame(width: 3)
-            Text(item.start.agenda(.dateTime.hour().minute()))
-                .font(Theme.Font.chipTime)
-                .foregroundStyle(.secondary)
-            Text(item.block.title)
-                .font(Theme.Font.chip)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, Theme.Space.xs)
-        .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16, alignment: .leading)
-        .background(Theme.Palette.eventFill(item.colorHex).opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.Radius.chip - 2))
-        .contentShape(Rectangle())
-        .onTapGesture { onOpen(item) }
-        .draggable(CalendarDragPayload.block(item)) {
-            Text(item.block.title).font(Theme.Font.chip).padding(Theme.Space.xs)
-                .background(Theme.Palette.eventFill(item.colorHex), in: RoundedRectangle(cornerRadius: Theme.Radius.chip))
-        }
-        .help(item.block.title)
-    }
-}
-
-/// Deadline in the calendar: checkbox + title in the area's color. Draggable to change the due date.
-struct TaskChip: View {
-    @Bindable var task: TaskItem
-
-    private var colorHex: String { task.area?.colorHex ?? CoursePalette.hexColors.last! }
-
-    var body: some View {
-        HStack(spacing: Theme.Space.xs) {
-            Button {
-                withAnimation(Theme.Motion.snappy) {
-                    task.isDone.toggle()
-                    task.completedAt = task.isDone ? .now : nil
-                }
-            } label: {
-                Image(systemName: task.isDone ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color(hex: colorHex))
-            }
-            .buttonStyle(.plain)
-            Text(task.title)
-                .font(Theme.Font.chip.weight(.semibold))
-                .strikethrough(task.isDone)
-                .foregroundStyle(task.isDone ? .secondary : .primary)
-                .lineLimit(1)
-        }
-        .padding(.horizontal, Theme.Space.xs)
-        .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: Theme.Radius.chip - 2)
-                .strokeBorder(Theme.Palette.eventStroke(colorHex), lineWidth: 1)
-        )
-        .draggable(CalendarDragPayload.task(task)) {
-            Text(task.title).font(Theme.Font.chip).padding(Theme.Space.xs)
-        }
-        .help("Due: \(task.title)")
     }
 }

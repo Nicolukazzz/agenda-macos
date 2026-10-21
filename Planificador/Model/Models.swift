@@ -155,3 +155,9 @@ final class Subtask {
 enum AgendaSchema {
     static let models: [any PersistentModel.Type] = [Semester.self, Area.self, Block.self, TaskItem.self, Subtask.self]
 }
+
+extension PersistentModel {
+    /// Stable identity for SwiftUI lists while the object is alive. `persistentModelID` can repeat
+    /// for objects that haven't been saved yet, which breaks `ForEach` diffing.
+    var liveID: ObjectIdentifier { ObjectIdentifier(self) }
+}

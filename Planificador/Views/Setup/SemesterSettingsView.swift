@@ -2,7 +2,7 @@ import AgendaCore
 import SwiftData
 import SwiftUI
 
-/// Term dates and recess ranges (weeks off, holidays) where classes don't happen.
+/// Term period and recess ranges (weeks off, holidays) where classes don't happen.
 struct SemesterSettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var semester: Semester
@@ -10,77 +10,69 @@ struct SemesterSettingsView: View {
     @State private var newBreakStart = Date.now
     @State private var newBreakEnd = Date.now
 
+    private let math = CalendarMath()
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Semester \(semester.name)").font(.title3.weight(.semibold))
-            Form {
-                Section {
-                    LabeledContent("Period", value: periodText)
-                } footer: {
-                    Text("Each semester covers its half of the year; weekly classes repeat within it.")
+        SheetScaffold(eyebrow: "Semester \(semester.name)") {
+            Card {
+                CardRow(icon: "calendar") {
+                    Text("Period")
+                    Spacer()
+                    Text(periodText).foregroundStyle(.secondary)
                 }
-                Section {
-                    if semester.breaks.isEmpty {
+                CardNote(text: "Each semester covers its half of the year; weekly classes repeat within it.")
+            }
+
+            SectionHeader("Breaks and Holidays", detail: "Optional")
+            Card {
+                if semester.breaks.isEmpty {
+                    CardRow(icon: "sun.horizon") {
                         Text("No breaks").foregroundStyle(.secondary)
                     }
-                    ForEach(Array(semester.breaks.enumerated()), id: \.offset) { index, range in
-                        HStack {
-                            Text(format(range))
-                            Spacer()
-                            Button(role: .destructive) {
-                                semester.breaks.remove(at: index)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                            }
-                            .buttonStyle(.plain)
-                            .foregroundStyle(.red)
+                }
+                ForEach(semester.breaks, id: \.start) { range in
+                    CardRow(icon: "sun.horizon") {
+                        Text(format(range))
+                        Spacer()
+                        IconButton(title: "Remove Break", systemImage: "minus", role: .destructive) {
+                            withAnimation(Theme.Motion.snappy) { semester.breaks.removeAll { $0 == range } }
                         }
                     }
-                    HStack(spacing: Theme.Space.s) {
-                        DatePill(date: $newBreakStart)
-                        Image(systemName: "arrow.right").foregroundStyle(.tertiary)
-                        DatePill(date: $newBreakEnd)
-                        Spacer()
-                        Button("Add", systemImage: "plus") { addBreak() }
-                            .buttonStyle(.glassProminent)
-                            .disabled(newBreakEnd < newBreakStart)
-                    }
-                } header: {
-                    Text("Breaks and Holidays")
-                } footer: {
-                    Text("Optional. Weekly classes don’t appear on these days (recess week, holidays).")
+                    CardDivider()
                 }
+                CardRow(icon: "plus") {
+                    DatePill(date: $newBreakStart, showsIcon: false)
+                    Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+                    DatePill(date: $newBreakEnd, showsIcon: false)
+                    Spacer()
+                    Button("Add") { addBreak() }
+                        .buttonStyle(.glass)
+                        .disabled(newBreakEnd < newBreakStart)
+                }
+                CardNote(text: "Weekly classes don’t appear on these days.")
             }
-            .formStyle(.grouped)
-            HStack {
-                Spacer()
-                Button("Done") { dismiss() }
-                    .buttonStyle(.glassProminent)
-                    .controlSize(.large)
-                    .keyboardShortcut(.defaultAction)
-            }
+        } footer: {
+            ActionBar(cancelTitle: nil, primaryTitle: "Done") { dismiss() }
         }
-        .padding(22)
-        .frame(width: 560, height: 520)
-    }
-
-    private func addBreak() {
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: newBreakStart)
-        // Inclusive of the last day.
-        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: newBreakEnd)) ?? start
-        semester.breaks.append(DateInterval(start: start, end: max(start, end)))
-        semester.breaks.sort { $0.start < $1.start }
     }
 
     private var periodText: String {
-        let style = Date.FormatStyle(date: .long, time: .omitted)
+        let style = Date.FormatStyle(date: .abbreviated, time: .omitted)
         return "\(semester.startDate.agenda(style)) – \(semester.endDate.agenda(style))"
+    }
+
+    private func addBreak() {
+        let start = math.startOfDay(newBreakStart)
+        // Inclusive of the last day.
+        let end = math.add(days: 1, to: math.startOfDay(newBreakEnd))
+        withAnimation(Theme.Motion.snappy) {
+            semester.breaks.append(DateInterval(start: start, end: max(start, end)))
+            semester.breaks.sort { $0.start < $1.start }
+        }
     }
 
     private func format(_ range: DateInterval) -> String {
         let style = Date.FormatStyle(date: .abbreviated, time: .omitted)
-        let lastDay = range.end.addingTimeInterval(-1)
-        return "\(range.start.agenda(style)) – \(lastDay.agenda(style))"
+        return "\(range.start.agenda(style)) – \(range.end.addingTimeInterval(-1).agenda(style))"
     }
 }

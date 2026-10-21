@@ -16,65 +16,57 @@ struct AreaEditorView: View {
     @State private var triedToSave = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(area == nil ? "New Personal Area" : "Edit \(area?.name ?? "")")
-                .font(.title3.weight(.semibold))
-            if area == nil {
-                Text("For things that aren’t courses: `#personal`, `#work`, `#gym`…")
-                    .foregroundStyle(.secondary)
-            }
-            Form {
+        SheetScaffold(eyebrow: area == nil ? "New Personal Area" : "Edit Course") {
+            HStack(spacing: Theme.Space.m) {
+                AreaBadge(name: name.isEmpty ? "?" : name, colorHex: colorHex)
                 TextField("Name", text: $name)
+                    .textFieldStyle(.plain)
+                    .font(Theme.Font.editorTitle)
                     .onChange(of: name) {
                         if area == nil { tag = TagSuggester.suggest(for: name, existing: takenTags) }
                     }
-                HStack {
-                    Text("#").foregroundStyle(.secondary)
-                    TextField("Tag", text: $tag)
+            }
+
+            Card {
+                CardRow(icon: "number") {
+                    Text("Tag")
+                    Spacer()
+                    TextField("tag", text: $tag)
+                        .textFieldStyle(.plain)
+                        .multilineTextAlignment(.trailing)
+                        .font(Theme.Font.tag)
+                        .frame(width: 140)
                         .onChange(of: tag) { tag = TagSuggester.normalize(tag) }
                 }
-                LabeledContent("Color") {
-                    HStack(spacing: 6) {
-                        ForEach(CoursePalette.hexColors, id: \.self) { hex in
-                            Button { colorHex = hex } label: {
-                                AreaDot(hex: hex, size: 18)
-                                    .overlay {
-                                        if hex == colorHex {
-                                            Circle().strokeBorder(.primary, lineWidth: 2).frame(width: 24, height: 24)
-                                        }
-                                    }
-                                    .frame(width: 24, height: 24)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
+                CardDivider()
+                CardRow(icon: "paintpalette") {
+                    ColorSwatchPicker(hex: $colorHex)
                 }
             }
-            .formStyle(.grouped)
-            .scrollDisabled(true)
-            .fixedSize(horizontal: false, vertical: true)
+
+            if area == nil {
+                Text("For things that aren’t courses: `#personal`, `#work`, `#gym`…")
+                    .font(Theme.Font.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             if let problem, triedToSave || takenTags.contains(tag) {
-                Label(problem, systemImage: "exclamationmark.circle").foregroundStyle(.red)
+                ValidationMessage(text: problem)
             }
-            HStack {
-                if let area, area.folderPath == nil {
-                    Button("Archive", role: .destructive) {
-                        area.isArchived = true
-                        dismiss()
-                    }
-                }
-                Spacer()
-                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                Button(area == nil ? "Create" : "Save") {
+        } footer: {
+            ActionBar(
+                destructiveTitle: area?.folderPath == nil && area != nil ? "Archive" : nil,
+                onDestructive: {
+                    area?.isArchived = true
+                    dismiss()
+                },
+                onCancel: { dismiss() },
+                primaryTitle: area == nil ? "Create" : "Save",
+                onPrimary: {
                     triedToSave = true
                     if problem == nil { save() }
-                }
-                .buttonStyle(.glassProminent)
-                .keyboardShortcut(.defaultAction)
-            }
+                })
         }
-        .padding(22)
-        .frame(width: 520)
         .onAppear {
             if let area {
                 name = area.name

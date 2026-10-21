@@ -87,7 +87,7 @@ struct TagCompletionField: View {
 
     private var suggestionList: some View {
         VStack(alignment: .leading, spacing: Theme.Space.xxs) {
-            ForEach(Array(suggestions.prefix(8).enumerated()), id: \.element.persistentModelID) { index, area in
+            ForEach(Array(suggestions.prefix(8).enumerated()), id: \.element.liveID) { index, area in
                 Button {
                     accept(area)
                 } label: {
@@ -113,36 +113,5 @@ struct TagCompletionField: View {
         .frame(width: 280)
         .glassEffect(.regular, in: .rect(cornerRadius: Theme.Radius.card))
         .shadow(color: .black.opacity(0.15), radius: 12, y: 6)
-    }
-}
-
-/// Menu to pick an area (or none), showing color and tag.
-struct AreaPicker: View {
-    @Binding var selection: Area?
-    let areas: [Area]
-
-    var body: some View {
-        Menu {
-            Button("No Course") { selection = nil }
-            Divider()
-            ForEach(areas) { area in
-                Button {
-                    selection = area
-                } label: {
-                    Text("\(area.name)  #\(area.tag)")
-                }
-            }
-        } label: {
-            HStack(spacing: Theme.Space.s) {
-                if let selection {
-                    AreaDot(hex: selection.colorHex)
-                    Text(selection.name)
-                } else {
-                    Image(systemName: "circle.dashed").foregroundStyle(.secondary)
-                    Text("No Course").foregroundStyle(.secondary)
-                }
-            }
-        }
-        .fixedSize()
     }
 }

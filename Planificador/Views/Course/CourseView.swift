@@ -26,11 +26,11 @@ struct CourseView: View {
             Group {
                 switch tab {
                 case .tasks:
-                    PlaceholderView(title: "Tasks", systemImage: "checklist", message: "Tasks for #\(area.tag) arrive in phase 3.")
+                    EmptyState(title: "Tasks", systemImage: "checklist", message: "Tasks for #\(area.tag) arrive in phase 3.")
                 case .notes:
-                    PlaceholderView(title: "Notes", systemImage: "note.text", message: "Markdown notes arrive in phase 4.")
+                    EmptyState(title: "Notes", systemImage: "note.text", message: "Markdown notes arrive in phase 4.")
                 case .files:
-                    PlaceholderView(title: "Files", systemImage: "folder", message: "The file browser arrives in phase 4.")
+                    EmptyState(title: "Files", systemImage: "folder", message: "The file browser arrives in phase 4.")
                 case .schedule:
                     ScheduleView(area: area)
                 }
@@ -56,15 +56,11 @@ struct CourseView: View {
         PageHeader(title: area.name) {
             AreaBadge(name: area.name, colorHex: area.colorHex)
         } trailing: {
-            HStack(spacing: Theme.Space.s) {
-                TagPill(tag: area.tag, colorHex: area.colorHex)
-                if let url = area.folderURL, !area.isFolderMissing {
-                    Button("Open Folder", systemImage: "folder") { NSWorkspace.shared.open(url) }
-                        .help(url.path(percentEncoded: false))
-                }
-                Button("Edit", systemImage: "pencil") { editing = true }
+            TagPill(tag: area.tag, colorHex: area.colorHex)
+            if let url = area.folderURL, !area.isFolderMissing {
+                IconButton(title: "Open Folder in Finder", systemImage: "folder") { NSWorkspace.shared.open(url) }
             }
-            .buttonStyle(.glass)
+            IconButton(title: "Edit Course", systemImage: "pencil") { editing = true }
         }
     }
 }
@@ -74,22 +70,14 @@ struct MissingFolderBanner: View {
     @Bindable var area: Area
 
     var body: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("This course’s folder can’t be found").font(.callout.weight(.semibold))
-                Text(area.folderPath ?? "").font(.caption).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
-            }
-            Spacer()
+        Banner(title: "This course’s folder can’t be found", message: area.folderPath) {
             Button("Relink…") {
                 let start = area.semester.map { URL(filePath: $0.folderPath, directoryHint: .isDirectory) }
                 if let url = chooseFolder(startingAt: start, prompt: "Relink") {
                     area.folderPath = url.path(percentEncoded: false)
                 }
             }
+            .buttonStyle(.glass)
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 10)
-        .background(.orange.opacity(0.12))
     }
 }

@@ -1,10 +1,10 @@
 import AgendaCore
 import SwiftUI
 
-// iPhone-style pickers for macOS: glass pills that open native graphical pickers or
-// touch-friendly lists, instead of the small stepper fields of `DatePicker`'s default style.
+// iPhone-style pickers for macOS: glass pills that open an iOS-like month calendar or a
+// scrolling time list, instead of the small stepper fields of `DatePicker`'s default style.
 
-/// "Wed, Oct 21" pill → popover with the native graphical calendar and quick choices.
+/// "Wed, Oct 21" pill → popover with the app's month calendar and quick choices.
 struct DatePill: View {
     @Binding var date: Date
     var label: String?
@@ -37,14 +37,10 @@ struct DatePill: View {
     }
 
     private func quick(_ title: String, _ day: Date) -> some View {
-        let isSelected = math.isSameDay(day, date)
-        return Button(title) {
+        Chip(title: title, isSelected: math.isSameDay(day, date)) {
             date = math.date(day, keepingTimeOf: date)
             isOpen = false
         }
-        .buttonStyle(.glass)
-        .tint(isSelected ? .accentColor : nil)
-        .controlSize(.small)
     }
 }
 
@@ -213,82 +209,6 @@ struct TimeList: View {
     }
 }
 
-/// Quick durations that move the end time: 30m · 45m · 1h · 1h 30m · 2h · 3h.
-struct DurationChips: View {
-    let start: Date
-    @Binding var end: Date
-
-    private static let options = [30, 45, 60, 90, 120, 180]
-
-    private var currentMinutes: Int { Int(end.timeIntervalSince(start) / 60) }
-
-    var body: some View {
-        HStack(spacing: Theme.Space.xs) {
-            ForEach(Self.options, id: \.self) { minutes in
-                let isSelected = minutes == currentMinutes
-                Button(Self.label(minutes)) {
-                    withAnimation(Theme.Motion.snappy) { end = start.addingTimeInterval(TimeInterval(minutes * 60)) }
-                }
-                .buttonStyle(.plain)
-                .font(Theme.Font.chip)
-                .padding(.horizontal, Theme.Space.s)
-                .padding(.vertical, Theme.Space.xs)
-                .background(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary.opacity(0.6)), in: Capsule())
-                .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-            }
-        }
-    }
-
-    static func label(_ minutes: Int) -> String {
-        let hours = minutes / 60, rest = minutes % 60
-        switch (hours, rest) {
-        case (0, _): return "\(rest)m"
-        case (_, 0): return "\(hours)h"
-        default: return "\(hours)h \(rest)m"
-        }
-    }
-}
-
-/// Tappable course chips in their colors, plus "None".
-struct CourseChips: View {
-    @Binding var selection: Area?
-    let areas: [Area]
-
-    var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: Theme.Space.xs + 2) {
-                chip(title: "None", colorHex: nil, isSelected: selection == nil) { selection = nil }
-                ForEach(areas) { area in
-                    chip(title: area.name, colorHex: area.colorHex, isSelected: selection === area) { selection = area }
-                }
-            }
-            .padding(.vertical, 2)
-        }
-        .scrollIndicators(.never)
-    }
-
-    private func chip(title: String, colorHex: String?, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        let color = colorHex.map { Color(hex: $0) } ?? .secondary
-        return Button {
-            withAnimation(Theme.Motion.snappy, action)
-        } label: {
-            HStack(spacing: Theme.Space.xs + 1) {
-                if colorHex != nil {
-                    Circle().fill(isSelected ? .white : color).frame(width: 7, height: 7)
-                }
-                Text(title).lineLimit(1)
-            }
-            .font(.callout.weight(isSelected ? .semibold : .regular))
-            .padding(.horizontal, Theme.Space.m - 2)
-            .padding(.vertical, Theme.Space.xs + 1)
-            .background(isSelected ? AnyShapeStyle(color.gradient) : AnyShapeStyle(color.opacity(0.14)), in: Capsule())
-            .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
 /// iPhone-alarm style weekday circles, Monday first.
 struct WeekdayCircles: View {
     @Binding var selection: Set<Int>
@@ -305,8 +225,8 @@ struct WeekdayCircles: View {
                 } label: {
                     Text(Weekdays.initial(weekday))
                         .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .frame(width: 30, height: 30)
-                        .background(isOn ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(.quaternary.opacity(0.6)), in: Circle())
+                        .frame(width: Theme.Size.dayCircle, height: Theme.Size.dayCircle)
+                        .background(isOn ? AnyShapeStyle(tint.gradient) : Theme.Palette.neutralFill, in: Circle())
                         .foregroundStyle(isOn ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 }
                 .buttonStyle(.plain)
@@ -316,40 +236,6 @@ struct WeekdayCircles: View {
             }
         }
     }
-}
-
-/// Rounded card that groups rows with leading icons (iOS Settings look, app spacing).
-struct EditorCard<Content: View>: View {
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) { content }
-            .background(.background.secondary, in: RoundedRectangle(cornerRadius: Theme.Radius.card, style: .continuous))
-    }
-}
-
-/// Row inside an `EditorCard`: icon, then content; separators between rows come from `EditorDivider`.
-struct EditorRow<Content: View>: View {
-    let icon: String
-    var iconColor: Color = .secondary
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        HStack(alignment: .center, spacing: Theme.Space.m) {
-            Image(systemName: icon)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(iconColor)
-                .frame(width: 20)
-            HStack(spacing: Theme.Space.s) { content }
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, Theme.Space.m + 2)
-        .padding(.vertical, Theme.Space.s + 2)
-    }
-}
-
-struct EditorDivider: View {
-    var body: some View { Divider().padding(.leading, 48) }
 }
 
 /// Pills inside editor rows already have a row icon; this hides the duplicate.
@@ -363,17 +249,4 @@ struct PillLabelStyle: LabelStyle {
             configuration.title
         }
     }
-}
-
-#Preview("Pickers") {
-    @Previewable @State var days: Set<Int> = [2, 4]
-    @Previewable @State var date = Date.now
-    HStack(alignment: .top, spacing: Theme.Space.xl) {
-        VStack(alignment: .leading, spacing: Theme.Space.l) {
-            WeekdayCircles(selection: $days)
-            MonthPicker(date: $date)
-        }
-        TimeList(time: $date, step: 15) {}
-    }
-    .padding(Theme.Space.xl)
 }

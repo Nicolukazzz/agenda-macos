@@ -11,7 +11,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		371DD1FE30896070004D47AE /* Planificador.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Planificador.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		371DD1FE30896070004D47AE /* Planificador.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = Planificador.app; path = Agenda.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A6E1C0012F00000100000004 /* AgendaCore */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = AgendaCore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
