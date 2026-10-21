@@ -15,6 +15,8 @@ struct CourseView: View {
     @Bindable var area: Area
     @State private var tab: CourseTab = .tasks
     @State private var editing = false
+    /// Folder contents for the Notes and Files tabs; rebuilt when the course is relinked.
+    @State private var files: CourseFiles?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,9 +30,9 @@ struct CourseView: View {
                 case .tasks:
                     CourseTasksView(area: area)
                 case .notes:
-                    EmptyState(title: "Notes", systemImage: "note.text", message: "Markdown notes arrive in phase 4.")
+                    if let files { NotesView(files: files) } else { noFolder }
                 case .files:
-                    EmptyState(title: "Files", systemImage: "folder", message: "The file browser arrives in phase 4.")
+                    if let files { FilesView(files: files) } else { noFolder }
                 case .schedule:
                     ScheduleView(area: area)
                 }
@@ -47,9 +49,19 @@ struct CourseView: View {
                 .fixedSize()
             }
         }
+        .task(id: area.folderPath) {
+            files = area.isFolderMissing ? nil : area.folderURL.map(CourseFiles.init(folder:))
+        }
         .sheet(isPresented: $editing) {
             AreaEditorView(area: area, semester: area.semester)
         }
+    }
+
+    private var noFolder: some View {
+        EmptyState(
+            title: area.folderPath == nil ? "No Folder" : "Folder Not Found",
+            systemImage: "questionmark.folder",
+            message: area.folderPath == nil ? "Personal areas don’t have a folder." : "Relink the course folder to see its notes and files.")
     }
 
     private var header: some View {

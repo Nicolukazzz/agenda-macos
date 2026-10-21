@@ -121,3 +121,28 @@ struct TagCompletionField: View {
         .shadow(color: .black.opacity(0.15), radius: 12, y: 6)
     }
 }
+
+/// Rounded search field used above lists (notes, files).
+struct SearchField: View {
+    @Binding var text: String
+    var prompt = "Search"
+
+    var body: some View {
+        HStack(spacing: Theme.Space.s) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField(prompt, text: $text).textFieldStyle(.plain)
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill").foregroundStyle(.tertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, Theme.Space.m)
+        .padding(.vertical, Theme.Space.s - 1)
+        .background(Theme.Palette.cardFill, in: Capsule())
+    }
+}

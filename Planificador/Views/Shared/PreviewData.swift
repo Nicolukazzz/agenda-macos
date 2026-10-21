@@ -46,11 +46,23 @@ enum PreviewData {
 
     static let sampleClassesRoot: URL = {
         let root = FileManager.default.temporaryDirectory.appending(path: "agenda-preview-classes")
-        for folder in ["2026-2/BD", "2026-2/Sistemas Operativos", "2026-2/Gestión TI", "2026-1/Calculo"] {
+        for folder in ["2026-2/BD/Notas", "2026-2/BD/Presentaciones", "2026-2/BD/Talleres", "2026-2/Sistemas Operativos", "2026-2/Gestión TI", "2026-1/Calculo"] {
             try? FileManager.default.createDirectory(at: root.appending(path: folder), withIntermediateDirectories: true)
+        }
+        let files: [String: String] = [
+            "2026-2/BD/Notas/2026-10-21 Normalización.md": "# Normalización\n\nUna tabla está en **3FN** si:\n\n- está en 2FN\n- no tiene dependencias *transitivas*\n\n> Cada atributo depende de la clave, toda la clave y nada más que la clave.\n\n```sql\nSELECT dept, COUNT(*)\n  FROM empleados\n GROUP BY dept;\n```\n\n| Forma | Regla |\n|---|---|\n| 1FN | atómicos |\n| 2FN | sin parciales |\n\n- [x] Leer capítulo 14\n- [ ] Taller 3\n",
+            "2026-2/BD/Notas/2026-10-14 Joins.md": "# Joins y subconsultas\n\nINNER, LEFT, RIGHT.\n",
+            "2026-2/BD/CLAUDE.md": "# Contexto de la materia\n\nBases de Datos.\n",
+            "2026-2/BD/Presentaciones/1 - Introducción.pdf": "",
+            "2026-2/BD/Talleres/Taller 3.sql": "SELECT 1;",
+        ]
+        for (path, contents) in files {
+            try? Data(contents.utf8).write(to: root.appending(path: path))
         }
         return root
     }()
+
+    static var sampleCourseFolder: URL { sampleClassesRoot.appending(path: "2026-2/BD", directoryHint: .isDirectory) }
 
     static var firstArea: Area {
         try! container.mainContext.fetch(FetchDescriptor<Area>(sortBy: [SortDescriptor(\.sortOrder)])).first!
@@ -121,4 +133,14 @@ enum PreviewData {
     let task = try! context.fetch(FetchDescriptor<TaskItem>(sortBy: [SortDescriptor(\.createdAt)])).first!
     return TaskEditorView(task: task, semester: semester)
         .modelContainer(PreviewData.container)
+}
+
+#Preview("Notes") {
+    NotesView(files: CourseFiles(folder: PreviewData.sampleCourseFolder))
+        .frame(width: 1000, height: 700)
+}
+
+#Preview("Files") {
+    FilesView(files: CourseFiles(folder: PreviewData.sampleCourseFolder))
+        .frame(width: 900, height: 500)
 }
