@@ -13,6 +13,7 @@ enum ScheduleImporter {
     static var inbox: URL { StoreLoader.storeURL.deletingLastPathComponent().appending(path: "Imports", directoryHint: .isDirectory) }
 
     static func importPending(into semester: Semester, context: ModelContext) {
+        guard !AppEnvironment.isPreview else { return }
         let files = (try? FileManager.default.contentsOfDirectory(at: inbox, includingPropertiesForKeys: nil))?
             .filter { $0.pathExtension == "json" } ?? []
         for url in files {

@@ -74,6 +74,8 @@ struct CalendarView: View {
         } message: {
             Text("Move only this day, or the whole series?")
         }
+        .onAppear(perform: handleNewEventCommand)
+        .onChange(of: appState.pendingCommand) { handleNewEventCommand() }
         .onKeyPress(.leftArrow) { step(-1); return .handled }
         .onKeyPress(.rightArrow) { step(1); return .handled }
         .onKeyPress("t") { goToToday(); return .handled }
@@ -100,11 +102,15 @@ struct CalendarView: View {
             .fixedSize()
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            Button("New Event", systemImage: "plus") {
-                editorTarget = newTarget(on: appState.calendarMode == .month && !math.isSameMonth(appState.calendarAnchor, .now) ? appState.calendarAnchor : .now)
-            }
-            .keyboardShortcut("e", modifiers: [.command, .shift])
+            Button("New Event", systemImage: "plus") { appState.pendingCommand = .newEvent }
+                .help("New Event (⇧⌘E)")
         }
+    }
+
+    private func handleNewEventCommand() {
+        guard appState.pendingCommand == .newEvent else { return }
+        appState.pendingCommand = nil
+        editorTarget = newTarget(on: appState.calendarMode == .month && !math.isSameMonth(appState.calendarAnchor, .now) ? appState.calendarAnchor : .now)
     }
 
     // MARK: Navigation

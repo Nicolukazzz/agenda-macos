@@ -144,3 +144,9 @@ enum PreviewData {
     FilesView(files: CourseFiles(folder: PreviewData.sampleCourseFolder))
         .frame(width: 900, height: 500)
 }
+
+#Preview("Settings") {
+    AgendaSettingsView()
+        .environment(AppState())
+        .modelContainer(PreviewData.container)
+}

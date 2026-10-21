@@ -12,6 +12,7 @@ struct TagCompletionField: View {
 
     /// `.prominent`: large borderless title field; `.plain`: borderless, for glass bars.
     var style: Style = .bordered
+    var autofocus = false
     var onSubmit: () -> Void = {}
 
     @State private var highlighted = 0
@@ -59,6 +60,7 @@ struct TagCompletionField: View {
             }
             .animation(Theme.Motion.snappy, value: suggestions.isEmpty)
             .zIndex(10)
+            .onAppear { if autofocus { focused = true } }
     }
 
     @ViewBuilder

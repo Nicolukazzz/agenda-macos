@@ -38,16 +38,31 @@ struct Chip: View {
     }
 }
 
-/// Horizontally scrolling chips.
+/// Horizontally scrolling chips. The trailing edge fades out only when the row overflows,
+/// hinting that there is more to scroll.
 struct ChipRow<Content: View>: View {
     @ViewBuilder var content: Content
+    @State private var overflows = false
 
     var body: some View {
         ScrollView(.horizontal) {
             HStack(spacing: Theme.Space.xs + 2) { content }
                 .padding(.vertical, 2)
+                .padding(.trailing, overflows ? Theme.Space.xl : 0)
         }
         .scrollIndicators(.never)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentSize.width > geometry.containerSize.width + 1
+        } action: { _, newValue in
+            overflows = newValue
+        }
+        .mask {
+            HStack(spacing: 0) {
+                Rectangle()
+                LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                    .frame(width: overflows ? Theme.Space.xxl : 0)
+            }
+        }
     }
 }
 

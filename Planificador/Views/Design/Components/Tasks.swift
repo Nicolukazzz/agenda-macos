@@ -97,6 +97,8 @@ struct QuickAddBar: View {
     let areas: [Area]
     /// Prefilled course (e.g. inside a course page).
     var defaultArea: Area?
+    var focusOnAppear = false
+    var onAdded: () -> Void = {}
 
     @State private var text = ""
 
@@ -116,7 +118,7 @@ struct QuickAddBar: View {
                     .foregroundStyle(.tint)
                 TagCompletionField(
                     placeholder: "Add a task — “Lab report #so friday 6pm !”",
-                    text: $text, areas: areas, style: .plain, onSubmit: add)
+                    text: $text, areas: areas, style: .plain, autofocus: focusOnAppear, onSubmit: add)
             }
             .padding(.horizontal, Theme.Space.l)
             .padding(.vertical, Theme.Space.m)
@@ -158,5 +160,6 @@ struct QuickAddBar: View {
         withAnimation(Theme.Motion.snappy) { context.insert(task) }
         try? context.save()
         text = ""
+        onAdded()
     }
 }
