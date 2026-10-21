@@ -56,6 +56,22 @@ struct AgendaCommands: Commands {
             Button("Calendar") { appState.selection = .calendar }.keyboardShortcut("2")
             Button("Tasks") { appState.selection = .tasks }.keyboardShortcut("3")
             Divider()
+            Button("Go to Today") {
+                appState.selection = .calendar
+                appState.pendingCommand = .calendarToday
+            }
+            .keyboardShortcut("t")
+            Button("Previous") {
+                appState.selection = .calendar
+                appState.pendingCommand = .calendarPrevious
+            }
+            .keyboardShortcut(.leftArrow)
+            Button("Next") {
+                appState.selection = .calendar
+                appState.pendingCommand = .calendarNext
+            }
+            .keyboardShortcut(.rightArrow)
+            Divider()
             Button("Month") {
                 appState.selection = .calendar
                 appState.calendarMode = .month

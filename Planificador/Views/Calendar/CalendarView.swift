@@ -37,7 +37,7 @@ struct CalendarView: View {
                     math: math,
                     onOpen: { editorTarget = .existing($0) },
                     onOpenTask: { editingTask = $0 },
-                    onCreate: { day in editorTarget = newTarget(on: day) },
+                    onCreate: { day in editorTarget = newTarget(on: day, kind: .task) },
                     onOpenDay: { day in
                         withAnimation(Theme.Motion.standard) {
                             appState.calendarAnchor = day
@@ -51,7 +51,7 @@ struct CalendarView: View {
                     anchor: appState.calendarAnchor, items: items, tasks: tasks, math: math,
                     onOpen: { editorTarget = .existing($0) },
                     onOpenTask: { editingTask = $0 },
-                    onCreate: { start, end in editorTarget = .new(start: start, end: end, area: nil) },
+                    onCreate: { start, end in editorTarget = .new(start: start, end: end, area: nil, kind: .event) },
                     onReschedule: requestReschedule,
                     onDrop: handleDrop,
                     onDropAtTime: handleDropAtTime
@@ -74,11 +74,10 @@ struct CalendarView: View {
         } message: {
             Text("Move only this day, or the whole series?")
         }
-        .onAppear(perform: handleNewEventCommand)
-        .onChange(of: appState.pendingCommand) { handleNewEventCommand() }
-        .onKeyPress(.leftArrow) { step(-1); return .handled }
-        .onKeyPress(.rightArrow) { step(1); return .handled }
-        .onKeyPress("t") { goToToday(); return .handled }
+        // Navigation shortcuts live in the Go menu (⌘T, ⌘←, ⌘→); bare key handlers here
+        // would swallow typing in text fields.
+        .onAppear(perform: handleCommand)
+        .onChange(of: appState.pendingCommand) { handleCommand() }
     }
 
     // MARK: Toolbar
@@ -92,7 +91,7 @@ struct CalendarView: View {
                 Button("Today") { goToToday() }
                 Button("Next", systemImage: "chevron.right") { step(1) }
             }
-            .help("← → to move, T for today")
+            .help("⌘← ⌘→ to move, ⌘T for today")
         }
         ToolbarItem(placement: .principal) {
             Picker("View", selection: $appState.calendarMode.animation(Theme.Motion.standard)) {
@@ -102,15 +101,38 @@ struct CalendarView: View {
             .fixedSize()
         }
         ToolbarItemGroup(placement: .primaryAction) {
-            Button("New Event", systemImage: "plus") { appState.pendingCommand = .newEvent }
-                .help("New Event (⇧⌘E)")
+            Menu {
+                Button("New Task", systemImage: "checklist") { editorTarget = newTarget(on: defaultNewDay, kind: .task) }
+                Button("New Event", systemImage: "calendar.badge.plus") { editorTarget = newTarget(on: defaultNewDay, kind: .event) }
+            } label: {
+                Label("New", systemImage: "plus")
+            }
+            .menuIndicator(.hidden)
+            .help("New task or event")
         }
     }
 
-    private func handleNewEventCommand() {
-        guard appState.pendingCommand == .newEvent else { return }
-        appState.pendingCommand = nil
-        editorTarget = newTarget(on: appState.calendarMode == .month && !math.isSameMonth(appState.calendarAnchor, .now) ? appState.calendarAnchor : .now)
+    private func handleCommand() {
+        switch appState.pendingCommand {
+        case .newEvent:
+            appState.pendingCommand = nil
+            editorTarget = newTarget(on: defaultNewDay, kind: .event)
+        case .calendarPrevious:
+            appState.pendingCommand = nil
+            step(-1)
+        case .calendarNext:
+            appState.pendingCommand = nil
+            step(1)
+        case .calendarToday:
+            appState.pendingCommand = nil
+            goToToday()
+        default:
+            break
+        }
+    }
+
+    private var defaultNewDay: Date {
+        appState.calendarMode == .month && !math.isSameMonth(appState.calendarAnchor, .now) ? appState.calendarAnchor : .now
     }
 
     // MARK: Navigation
@@ -156,9 +178,9 @@ struct CalendarView: View {
         withAnimation(Theme.Motion.standard) { appState.calendarAnchor = .now }
     }
 
-    private func newTarget(on day: Date) -> BlockEditorTarget {
+    private func newTarget(on day: Date, kind: NewItemKind) -> BlockEditorTarget {
         let start = math.date(day, atMinutes: 9 * 60)
-        return .new(start: start, end: start.addingTimeInterval(3600), area: nil)
+        return .new(start: start, end: start.addingTimeInterval(3600), area: nil, kind: kind)
     }
 
     // MARK: Changes

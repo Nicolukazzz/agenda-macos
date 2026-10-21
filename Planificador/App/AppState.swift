@@ -63,4 +63,7 @@ enum AppCommand: Equatable {
     case exportBackup
     case importBackup
     case backUpNow
+    case calendarPrevious
+    case calendarNext
+    case calendarToday
 }

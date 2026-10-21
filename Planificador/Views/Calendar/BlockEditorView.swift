@@ -2,19 +2,28 @@ import AgendaCore
 import SwiftData
 import SwiftUI
 
+/// What a new calendar item becomes: a task with a due date (shown in Tasks, Today and the month)
+/// or an event that blocks time.
+enum NewItemKind: String, CaseIterable, Identifiable {
+    case task = "Task"
+    case event = "Event"
+    var id: Self { self }
+}
+
 enum BlockEditorTarget: Identifiable {
-    case new(start: Date, end: Date, area: Area?)
+    case new(start: Date, end: Date, area: Area?, kind: NewItemKind)
     case existing(CalendarItem)
 
     var id: String {
         switch self {
-        case .new(let start, _, _): "new-\(start.timeIntervalSinceReferenceDate)"
+        case .new(let start, _, _, let kind): "new-\(kind.rawValue)-\(start.timeIntervalSinceReferenceDate)"
         case .existing(let item): item.id
         }
     }
 }
 
-/// Create or edit a calendar block. `#tag` in the title assigns the area.
+/// Create a task or an event from the calendar, or edit an event. `#tag` in the title assigns the course.
+/// Existing one-off events can be converted into tasks.
 struct BlockEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
@@ -35,6 +44,8 @@ struct BlockEditorView: View {
     @State private var askingDeleteScope = false
     /// Validation messages appear only after a save attempt, never on an untouched form.
     @State private var triedToSave = false
+    @State private var kind: NewItemKind = .event
+    @State private var taskHasTime = false
 
     private let math = CalendarMath()
 
@@ -43,7 +54,8 @@ struct BlockEditorView: View {
         self.semester = semester
         let math = CalendarMath()
         switch target {
-        case .new(let start, let end, let preset):
+        case .new(let start, let end, let preset, let kind):
+            _kind = State(initialValue: kind)
             _day = State(initialValue: start)
             _startTime = State(initialValue: start)
             _endTime = State(initialValue: end)
@@ -68,14 +80,83 @@ struct BlockEditorView: View {
         return nil
     }
 
+    private var isTask: Bool { existing == nil && kind == .task }
+
     var body: some View {
-        SheetScaffold(eyebrow: existing == nil ? "New Event" : "Edit Event") {
+        SheetScaffold(eyebrow: existing != nil ? "Edit Event" : (isTask ? "New Task" : "New Event")) {
+            if existing == nil {
+                Picker("Kind", selection: $kind.animation(Theme.Motion.snappy)) {
+                    ForEach(NewItemKind.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .help("A task has a due date and appears in Tasks and Today; an event blocks time in the calendar.")
+            }
+
             VStack(alignment: .leading, spacing: Theme.Space.s) {
                 TagCompletionField(placeholder: "Title", text: $title, areas: semester.sortedAreas, style: .prominent, onSubmit: attemptSave)
                 CourseChips(selection: $area, areas: semester.sortedAreas)
             }
             .zIndex(1)
 
+            if isTask {
+                taskCards
+            } else {
+                eventCards
+            }
+
+            if let problem, triedToSave || (!isTask && newEnd <= newStart) {
+                ValidationMessage(text: problem)
+            }
+        } footer: {
+            ActionBar(
+                destructiveTitle: existing == nil ? nil : "Delete",
+                onDestructive: {
+                    if existing?.isRecurring == true { askingDeleteScope = true } else { deleteNow(.allEvents) }
+                },
+                onCancel: { dismiss() },
+                primaryTitle: "Save",
+                onPrimary: attemptSave)
+        }
+        .animation(Theme.Motion.snappy, value: repeats)
+        .animation(Theme.Motion.snappy, value: taskHasTime)
+        .confirmationDialog("This event repeats", isPresented: $askingScope) {
+            Button("Only This Event") { save(.onlyThis) }
+            Button("All Events") { save(.allEvents) }
+        } message: {
+            Text("Apply the changes to this day only, or to the whole series?")
+        }
+        .confirmationDialog("This event repeats", isPresented: $askingDeleteScope) {
+            Button("Delete Only This Event", role: .destructive) { deleteNow(.onlyThis) }
+            Button("Delete All Events", role: .destructive) { deleteNow(.allEvents) }
+        }
+    }
+
+    // MARK: Sections
+
+    @ViewBuilder
+    private var taskCards: some View {
+        Card {
+            CardRow(icon: "calendar") {
+                Text("Due")
+                Spacer()
+                DatePill(date: $day, showsIcon: false)
+            }
+            CardDivider()
+            CardRow(icon: "clock", iconColor: taskHasTime ? .accentColor : .secondary) {
+                Text("Time")
+                Spacer()
+                if taskHasTime { TimePill(time: $startTime, showsIcon: false) }
+                Toggle("Time", isOn: $taskHasTime).toggleStyle(.switch).labelsHidden()
+            }
+        }
+        Card {
+            CardRow(icon: "text.alignleft") { CardTextField(placeholder: "Notes", text: $notes, axis: .vertical) }
+        }
+    }
+
+    @ViewBuilder
+    private var eventCards: some View {
             Card {
                 CardRow(icon: "calendar") {
                     Text("Day")
@@ -121,30 +202,17 @@ struct BlockEditorView: View {
                 CardRow(icon: "text.alignleft") { CardTextField(placeholder: "Notes", text: $notes, axis: .vertical) }
             }
 
-            if let problem, triedToSave || newEnd <= newStart {
-                ValidationMessage(text: problem)
+            if let item = existing, !item.isRecurring {
+                Card {
+                    CardRow(icon: "checklist") {
+                        Text("Is this a deadline?")
+                        Spacer()
+                        Button("Convert to Task") { convertToTask(item) }
+                            .buttonStyle(.glass)
+                    }
+                    CardNote(text: "Tasks show up in Tasks, Today and the course’s Tasks tab.")
+                }
             }
-        } footer: {
-            ActionBar(
-                destructiveTitle: existing == nil ? nil : "Delete",
-                onDestructive: {
-                    if existing?.isRecurring == true { askingDeleteScope = true } else { deleteNow(.allEvents) }
-                },
-                onCancel: { dismiss() },
-                primaryTitle: "Save",
-                onPrimary: attemptSave)
-        }
-        .animation(Theme.Motion.snappy, value: repeats)
-        .confirmationDialog("This event repeats", isPresented: $askingScope) {
-            Button("Only This Event") { save(.onlyThis) }
-            Button("All Events") { save(.allEvents) }
-        } message: {
-            Text("Apply the changes to this day only, or to the whole series?")
-        }
-        .confirmationDialog("This event repeats", isPresented: $askingDeleteScope) {
-            Button("Delete Only This Event", role: .destructive) { deleteNow(.onlyThis) }
-            Button("Delete All Events", role: .destructive) { deleteNow(.allEvents) }
-        }
     }
 
     // MARK: State
@@ -167,6 +235,7 @@ struct BlockEditorView: View {
 
     private var problem: String? {
         if resolved.title.isEmpty && resolved.area == nil { return "Enter a title or pick a course." }
+        if isTask { return nil }
         if newEnd <= newStart { return "The end time must be after the start time." }
         if repeats && weekdays.isEmpty { return "Pick at least one day." }
         return nil
@@ -177,6 +246,10 @@ struct BlockEditorView: View {
     private func attemptSave() {
         triedToSave = true
         guard problem == nil else { return }
+        if isTask {
+            saveTask()
+            return
+        }
         if existing?.isRecurring == true { askingScope = true } else { save(.allEvents) }
     }
 
@@ -207,6 +280,29 @@ struct BlockEditorView: View {
             let block = Block(title: finalTitle, start: newStart, end: newEnd, area: finalArea, recurrence: recurrence, location: location, notes: notes)
             context.insert(block)
         }
+        try? context.save()
+        dismiss()
+    }
+
+    private func saveTask() {
+        let (cleanTitle, finalArea) = resolved
+        let due = taskHasTime ? newStart : math.date(day, atMinutes: 23 * 60 + 59)
+        let task = TaskItem(
+            title: cleanTitle.isEmpty ? (finalArea?.name ?? "Task") : cleanTitle,
+            dueDate: due, dueHasTime: taskHasTime, area: finalArea, notes: notes)
+        context.insert(task)
+        try? context.save()
+        dismiss()
+    }
+
+    /// Turns a one-off event into a task due at the event's start; the event is removed.
+    private func convertToTask(_ item: CalendarItem) {
+        let (cleanTitle, finalArea) = resolved
+        let task = TaskItem(
+            title: cleanTitle.isEmpty ? item.block.title : cleanTitle,
+            dueDate: newStart, dueHasTime: true, area: finalArea, notes: notes)
+        context.insert(task)
+        context.delete(item.block)
         try? context.save()
         dismiss()
     }

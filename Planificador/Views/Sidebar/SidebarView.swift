@@ -16,8 +16,10 @@ struct SidebarView: View {
         @Bindable var appState = appState
         List(selection: $appState.selection) {
             Section("Planner") {
-                Label("Today", systemImage: "sun.max").tag(SidebarItem.today)
+                // `.tag` must stay outermost: applied before `.badge`, the row can't be selected.
+                Label("Today", systemImage: "sun.max")
                     .badge(pendingToday)
+                    .tag(SidebarItem.today)
                 Label("Calendar", systemImage: "calendar").tag(SidebarItem.calendar)
                 Label("Tasks", systemImage: "checklist").tag(SidebarItem.tasks)
             }

@@ -106,8 +106,8 @@ private struct CommandHandler: ViewModifier {
         case .newTask:
             appState.pendingCommand = nil
             showingNewTask = true
-        case .newEvent:
-            // CalendarView picks this up and opens its editor.
+        case .newEvent, .calendarPrevious, .calendarNext, .calendarToday:
+            // CalendarView picks these up.
             appState.selection = .calendar
         case .backUpNow:
             appState.pendingCommand = nil
