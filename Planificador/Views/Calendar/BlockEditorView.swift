@@ -38,6 +38,31 @@ struct BlockEditorView: View {
 
     private let math = CalendarMath()
 
+    init(target: BlockEditorTarget, semester: Semester) {
+        self.target = target
+        self.semester = semester
+        let math = CalendarMath()
+        switch target {
+        case .new(let start, let end, let preset):
+            _day = State(initialValue: start)
+            _startTime = State(initialValue: start)
+            _endTime = State(initialValue: end)
+            _area = State(initialValue: preset)
+            _weekdays = State(initialValue: [math.calendar.component(.weekday, from: start)])
+        case .existing(let item):
+            let block = item.block
+            _title = State(initialValue: block.title)
+            _area = State(initialValue: block.area)
+            _day = State(initialValue: item.start)
+            _startTime = State(initialValue: item.start)
+            _endTime = State(initialValue: item.end)
+            _repeats = State(initialValue: block.recurrence != nil)
+            _weekdays = State(initialValue: block.recurrence?.weekdays ?? [math.calendar.component(.weekday, from: item.start)])
+            _location = State(initialValue: block.location)
+            _notes = State(initialValue: block.notes)
+        }
+    }
+
     private var existing: CalendarItem? {
         if case .existing(let item) = target { return item }
         return nil
@@ -46,7 +71,7 @@ struct BlockEditorView: View {
     var body: some View {
         SheetScaffold(eyebrow: existing == nil ? "New Event" : "Edit Event") {
             VStack(alignment: .leading, spacing: Theme.Space.s) {
-                TagCompletionField(placeholder: "Title", text: $title, areas: semester.sortedAreas, prominent: true, onSubmit: attemptSave)
+                TagCompletionField(placeholder: "Title", text: $title, areas: semester.sortedAreas, style: .prominent, onSubmit: attemptSave)
                 CourseChips(selection: $area, areas: semester.sortedAreas)
             }
             .zIndex(1)
@@ -110,7 +135,6 @@ struct BlockEditorView: View {
                 onPrimary: attemptSave)
         }
         .animation(Theme.Motion.snappy, value: repeats)
-        .onAppear(perform: load)
         .confirmationDialog("This event repeats", isPresented: $askingScope) {
             Button("Only This Event") { save(.onlyThis) }
             Button("All Events") { save(.allEvents) }
@@ -129,28 +153,6 @@ struct BlockEditorView: View {
         Binding(
             get: { weekdays.contains(weekday) },
             set: { isOn in if isOn { weekdays.insert(weekday) } else { weekdays.remove(weekday) } })
-    }
-
-    private func load() {
-        switch target {
-        case .new(let start, let end, let preset):
-            day = start
-            startTime = start
-            endTime = end
-            area = preset
-            weekdays = [math.calendar.component(.weekday, from: start)]
-        case .existing(let item):
-            let block = item.block
-            title = block.title
-            area = block.area
-            day = item.start
-            startTime = item.start
-            endTime = item.end
-            repeats = block.recurrence != nil
-            weekdays = block.recurrence?.weekdays ?? [math.calendar.component(.weekday, from: item.start)]
-            location = block.location
-            notes = block.notes
-        }
     }
 
     private var resolved: (title: String, area: Area?) {

@@ -55,10 +55,12 @@ struct ChipRow<Content: View>: View {
 struct CourseChips: View {
     @Binding var selection: Area?
     let areas: [Area]
+    /// Label for the nil choice: "None" when assigning, "All" when filtering.
+    var noneTitle = "None"
 
     var body: some View {
         ChipRow {
-            Chip(title: "None", isSelected: selection == nil) { selection = nil }
+            Chip(title: noneTitle, isSelected: selection == nil) { selection = nil }
             ForEach(areas, id: \.liveID) { area in
                 Chip(title: area.name, colorHex: area.colorHex, isSelected: selection === area) { selection = area }
             }

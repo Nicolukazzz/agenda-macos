@@ -11,6 +11,7 @@ struct MonthView: View {
     let showClasses: Bool
     let math: CalendarMath
     var onOpen: (CalendarItem) -> Void
+    var onOpenTask: (TaskItem) -> Void
     var onCreate: (Date) -> Void
     var onOpenDay: (Date) -> Void
     var onDrop: (String, Date) -> Bool
@@ -38,6 +39,7 @@ struct MonthView: View {
                                     showClasses: showClasses,
                                     height: rowHeight,
                                     onOpen: onOpen,
+                                    onOpenTask: onOpenTask,
                                     onCreate: { onCreate(day) },
                                     onOpenDay: { onOpenDay(day) },
                                     onDrop: { onDrop($0, day) }
@@ -81,6 +83,7 @@ private struct MonthDayCell: View {
     let showClasses: Bool
     let height: CGFloat
     var onOpen: (CalendarItem) -> Void
+    var onOpenTask: (TaskItem) -> Void
     var onCreate: () -> Void
     var onOpenDay: () -> Void
     var onDrop: (String) -> Bool
@@ -155,7 +158,7 @@ private struct MonthDayCell: View {
 
         ForEach(visible) { entry in
             switch entry {
-            case .task(let task): TaskChip(task: task)
+            case .task(let task): TaskChip(task: task, onOpen: onOpenTask)
             case .event(let item): EventChip(item: item, onOpen: onOpen)
             }
         }

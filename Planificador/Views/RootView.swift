@@ -42,11 +42,11 @@ struct MainSplitView: View {
     private var detail: some View {
         switch appState.selection {
         case .today:
-            EmptyState(title: "Today", systemImage: "sun.max", message: "Overdue tasks, today’s tasks and today’s blocks will appear here (phase 3).")
+            TodayView(semester: semester)
         case .calendar, .none:
             CalendarView(semester: semester)
         case .tasks:
-            EmptyState(title: "Tasks", systemImage: "checklist", message: "Tasks with quick entry arrive in phase 3.")
+            TasksPage(semester: semester)
         case .area(let id):
             if let area = context.model(for: id) as? Area, area.semester != nil {
                 CourseView(area: area)

@@ -6,6 +6,8 @@ struct SidebarView: View {
     @Environment(AppState.self) private var appState
     let semester: Semester
 
+    @Query(filter: #Predicate<TaskItem> { !$0.isDone && $0.dueDate != nil }) private var openTasks: [TaskItem]
+
     @State private var showingSemesterSettings = false
     @State private var showingNewArea = false
     @State private var showingNewSemester = false
@@ -15,6 +17,7 @@ struct SidebarView: View {
         List(selection: $appState.selection) {
             Section("Planner") {
                 Label("Today", systemImage: "sun.max").tag(SidebarItem.today)
+                    .badge(pendingToday)
                 Label("Calendar", systemImage: "calendar").tag(SidebarItem.calendar)
                 Label("Tasks", systemImage: "checklist").tag(SidebarItem.tasks)
             }
@@ -52,6 +55,15 @@ struct SidebarView: View {
         .sheet(isPresented: $showingNewSemester) {
             SetupWizardView { showingNewSemester = false }
         }
+    }
+
+    /// Overdue + due today, shown as the Today badge.
+    private var pendingToday: Int {
+        let math = CalendarMath()
+        return openTasks.filter {
+            let bucket = TaskBucket.bucket(due: $0.dueDate, hasTime: $0.dueHasTime, now: .now, math: math)
+            return bucket == .overdue || bucket == .today
+        }.count
     }
 }
 

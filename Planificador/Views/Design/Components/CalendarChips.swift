@@ -108,3 +108,37 @@ struct ClassTag: View {
             .accessibilityAddTraits(.isButton)
     }
 }
+
+/// An event as a full card row (Today view, lists): color bar, time range, title, room.
+struct EventRow: View {
+    let item: CalendarItem
+    var onOpen: (CalendarItem) -> Void
+
+    var body: some View {
+        CardRow {
+            RoundedRectangle(cornerRadius: 1.5)
+                .fill(Color(hex: item.colorHex))
+                .frame(width: 3, height: 32)
+            VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+                Text(item.block.title).font(Theme.Font.rowTitle.weight(.medium))
+                HStack(spacing: Theme.Space.s) {
+                    Text("\(item.start.agenda(date: .omitted, time: .shortened)) – \(item.end.agenda(date: .omitted, time: .shortened))")
+                        .monospacedDigit()
+                    if !item.block.location.isEmpty {
+                        Label(item.block.location, systemImage: "mappin")
+                    }
+                }
+                .font(Theme.Font.caption)
+                .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if item.start <= .now && item.end > .now {
+                Text("Now").font(Theme.Font.caption.weight(.bold)).foregroundStyle(.tint)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { onOpen(item) }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
+    }
+}

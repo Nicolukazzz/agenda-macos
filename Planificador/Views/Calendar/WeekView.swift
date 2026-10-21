@@ -11,9 +11,12 @@ struct WeekView: View {
     let tasks: [TaskItem]
     let math: CalendarMath
     var onOpen: (CalendarItem) -> Void
+    var onOpenTask: (TaskItem) -> Void
     var onCreate: (Date, Date) -> Void
     var onReschedule: (CalendarItem, Date, Date) -> Void
     var onDrop: (String, Date) -> Bool
+    /// A task dropped on the hour grid: payload and the start time under the pointer.
+    var onDropAtTime: (String, Date) -> Bool
 
     @AppStorage("weekFirstHour") private var firstHour = 6
     @AppStorage("weekLastHour") private var lastHour = 23
@@ -48,7 +51,8 @@ struct WeekView: View {
                                         math: math,
                                         onOpen: onOpen,
                                         onCreate: onCreate,
-                                        onReschedule: onReschedule
+                                        onReschedule: onReschedule,
+                                        onDropAtTime: onDropAtTime
                                     )
                                     .frame(width: columnWidth)
                                 }
@@ -77,6 +81,7 @@ struct WeekView: View {
                     day: day,
                     isToday: math.isSameDay(day, .now),
                     tasks: tasks.filter { $0.dueDate.map { math.isSameDay($0, day) } ?? false },
+                    onOpenTask: onOpenTask,
                     onDrop: { onDrop($0, day) }
                 )
                 .frame(maxWidth: .infinity)
@@ -104,6 +109,7 @@ private struct WeekDayHeader: View {
     let day: Date
     let isToday: Bool
     let tasks: [TaskItem]
+    var onOpenTask: (TaskItem) -> Void
     var onDrop: (String) -> Bool
 
     @State private var isTargeted = false
@@ -121,7 +127,7 @@ private struct WeekDayHeader: View {
             }
             .font(Theme.Font.dayNumber)
             VStack(spacing: 2) {
-                ForEach(tasks) { TaskChip(task: $0) }
+                ForEach(tasks, id: \.liveID) { TaskChip(task: $0, onOpen: onOpenTask) }
             }
             .padding(.horizontal, Theme.Space.xs)
             .frame(minHeight: 4)
@@ -148,6 +154,7 @@ private struct WeekDayColumn: View {
     var onOpen: (CalendarItem) -> Void
     var onCreate: (Date, Date) -> Void
     var onReschedule: (CalendarItem, Date, Date) -> Void
+    var onDropAtTime: (String, Date) -> Bool
 
     @State private var ghost: (start: CGFloat, end: CGFloat)?
 
@@ -192,6 +199,10 @@ private struct WeekDayColumn: View {
         .background(isWeekend ? Theme.Palette.weekendFill : .clear)
         .overlay(alignment: .leading) { Rectangle().fill(Theme.Palette.gridLine).frame(width: 1) }
         .clipped()
+        .dropDestination(for: String.self) { payloads, location in
+            guard let payload = payloads.first else { return false }
+            return onDropAtTime(payload, math.date(day, atMinutes: snappedMinutes(at: location.y)))
+        }
     }
 
     private var isWeekend: Bool {

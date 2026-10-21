@@ -26,7 +26,7 @@ struct CourseView: View {
             Group {
                 switch tab {
                 case .tasks:
-                    EmptyState(title: "Tasks", systemImage: "checklist", message: "Tasks for #\(area.tag) arrive in phase 3.")
+                    CourseTasksView(area: area)
                 case .notes:
                     EmptyState(title: "Notes", systemImage: "note.text", message: "Markdown notes arrive in phase 4.")
                 case .files:
@@ -78,6 +78,22 @@ struct MissingFolderBanner: View {
                 }
             }
             .buttonStyle(.glass)
+        }
+    }
+}
+
+/// A course's tasks with quick add prefilled to the course.
+struct CourseTasksView: View {
+    let area: Area
+    @State private var editing: TaskItem?
+
+    var body: some View {
+        PageContent {
+            QuickAddBar(areas: area.semester?.sortedAreas ?? [area], defaultArea: area)
+            TaskListView(area: area) { editing = $0 }
+        }
+        .sheet(item: $editing) { task in
+            if let semester = area.semester { TaskEditorView(task: task, semester: semester) }
         }
     }
 }

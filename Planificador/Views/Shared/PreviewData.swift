@@ -96,3 +96,29 @@ enum PreviewData {
         .modelContainer(PreviewData.container)
         .frame(width: 760, height: 620)
 }
+
+#Preview("Tasks") {
+    let state = AppState()
+    state.selection = .tasks
+    return RootView()
+        .environment(state)
+        .modelContainer(PreviewData.container)
+        .frame(width: 1200, height: 760)
+}
+
+#Preview("Today") {
+    let state = AppState()
+    state.selection = .today
+    return RootView()
+        .environment(state)
+        .modelContainer(PreviewData.container)
+        .frame(width: 1200, height: 760)
+}
+
+#Preview("Task editor") {
+    let context = PreviewData.container.mainContext
+    let semester = try! context.fetch(FetchDescriptor<Semester>()).first!
+    let task = try! context.fetch(FetchDescriptor<TaskItem>(sortBy: [SortDescriptor(\.createdAt)])).first!
+    return TaskEditorView(task: task, semester: semester)
+        .modelContainer(PreviewData.container)
+}

@@ -8,8 +8,10 @@ struct TagCompletionField: View {
     let placeholder: String
     @Binding var text: String
     let areas: [Area]
-    /// Large borderless field for the main title of an editor.
-    var prominent = false
+    enum Style { case bordered, prominent, plain }
+
+    /// `.prominent`: large borderless title field; `.plain`: borderless, for glass bars.
+    var style: Style = .bordered
     var onSubmit: () -> Void = {}
 
     @State private var highlighted = 0
@@ -51,7 +53,7 @@ struct TagCompletionField: View {
             .overlay(alignment: .topLeading) {
                 if focused && !suggestions.isEmpty {
                     suggestionList
-                        .offset(y: prominent ? 38 : 30)
+                        .offset(y: style == .prominent ? 38 : 30)
                         .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .top)))
                 }
             }
@@ -61,11 +63,15 @@ struct TagCompletionField: View {
 
     @ViewBuilder
     private var field: some View {
-        if prominent {
+        switch style {
+        case .prominent:
             TextField(placeholder, text: $text)
                 .textFieldStyle(.plain)
-                .font(.system(.title2, design: .rounded).weight(.semibold))
-        } else {
+                .font(Theme.Font.editorTitle)
+        case .plain:
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.plain)
+        case .bordered:
             TextField(placeholder, text: $text)
                 .textFieldStyle(.roundedBorder)
         }

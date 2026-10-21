@@ -33,7 +33,7 @@ extension PageHeader where Leading == EmptyView {
     }
 }
 
-/// Scrollable page body with standard padding and readable width.
+/// Scrollable page body with standard padding and a readable, centered column.
 struct PageContent<Content: View>: View {
     var maxWidth: CGFloat = Theme.Size.contentMaxWidth
     @ViewBuilder var content: Content
@@ -43,7 +43,7 @@ struct PageContent<Content: View>: View {
             VStack(alignment: .leading, spacing: Theme.Space.xl) { content }
                 .padding(Theme.Space.xl)
                 .frame(maxWidth: maxWidth, alignment: .leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity)
         }
     }
 }

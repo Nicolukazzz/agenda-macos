@@ -12,6 +12,7 @@ struct CalendarView: View {
     @Query(filter: #Predicate<TaskItem> { $0.dueDate != nil }) private var dueTasks: [TaskItem]
 
     @State private var editorTarget: BlockEditorTarget?
+    @State private var editingTask: TaskItem?
     @State private var pendingChange: PendingChange?
 
     private let math = CalendarMath()
@@ -35,6 +36,7 @@ struct CalendarView: View {
                     anchor: appState.calendarAnchor, items: items, tasks: tasks,
                     showClasses: appState.showClassesInMonth, math: math,
                     onOpen: { editorTarget = .existing($0) },
+                    onOpenTask: { editingTask = $0 },
                     onCreate: { day in editorTarget = newTarget(on: day) },
                     onOpenDay: { day in
                         withAnimation(Theme.Motion.standard) {
@@ -48,9 +50,11 @@ struct CalendarView: View {
                 WeekView(
                     anchor: appState.calendarAnchor, items: items, tasks: tasks, math: math,
                     onOpen: { editorTarget = .existing($0) },
+                    onOpenTask: { editingTask = $0 },
                     onCreate: { start, end in editorTarget = .new(start: start, end: end, area: nil) },
                     onReschedule: requestReschedule,
-                    onDrop: handleDrop
+                    onDrop: handleDrop,
+                    onDropAtTime: handleDropAtTime
                 )
             }
         }
@@ -60,6 +64,7 @@ struct CalendarView: View {
         .sheet(item: $editorTarget) { target in
             BlockEditorView(target: target, semester: semester)
         }
+        .sheet(item: $editingTask) { TaskEditorView(task: $0, semester: semester) }
         .confirmationDialog(
             "This event repeats",
             isPresented: Binding(get: { pendingChange != nil }, set: { if !$0 { pendingChange = nil } })
@@ -174,6 +179,19 @@ struct CalendarView: View {
             BlockActions.reschedule(change.item, to: change.start, end: change.end, scope: scope, context: context, math: math)
         }
         pendingChange = nil
+    }
+
+    /// Dropping a task on the hour grid reserves an hour of work for it; events dropped there move.
+    private func handleDropAtTime(_ payload: String, _ start: Date) -> Bool {
+        let parts = payload.split(separator: "|", maxSplits: 1).map(String.init)
+        guard parts.count == 2 else { return false }
+        if parts[0] == "task", let task = dueTasks.first(where: { CalendarFeed.key(for: $0) == parts[1] }) {
+            let block = Block(title: task.title, start: start, end: start.addingTimeInterval(3600), area: task.area)
+            block.linkedTask = task
+            withAnimation(Theme.Motion.snappy) { context.insert(block) }
+            return true
+        }
+        return handleDrop(payload, start)
     }
 
     /// Dropping an event or a task on a day moves it there, keeping its time.
