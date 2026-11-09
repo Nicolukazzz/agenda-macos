@@ -8,6 +8,7 @@ struct AgendaSettingsView: View {
     @Environment(AppState.self) private var appState
     @AppStorage("weekFirstHour") private var firstHour = 6
     @AppStorage("weekLastHour") private var lastHour = 23
+    @AppStorage(MoneySettings.rateKey) private var copPerUSD = MoneySettings.defaultRate
 
     var body: some View {
         PageContent(maxWidth: 560) {
@@ -44,6 +45,21 @@ struct AgendaSettingsView: View {
                         Stepper("\(lastHour):00", value: $lastHour, in: (firstHour + 4)...24)
                             .monospacedDigit()
                     }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
+                SectionHeader("Money")
+                Card {
+                    CardRow(icon: "dollarsign.arrow.circlepath") {
+                        Text("Pesos per dollar")
+                        Spacer()
+                        TextField("4000", value: $copPerUSD, format: .number.precision(.fractionLength(0...2)))
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
+                            .frame(width: 120)
+                    }
+                    CardNote(text: "Agenda is offline, so update this when the dollar moves. New entries save the rate of their day; past months keep theirs.")
                 }
             }
 

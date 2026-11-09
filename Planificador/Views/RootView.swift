@@ -16,10 +16,22 @@ struct RootView: View {
                 .task(id: semester.persistentModelID) {
                     semester.normalizeDates()
                     ScheduleImporter.importPending(into: semester, context: context)
+                    MoneyCategory.seedDefaults(in: context)
                     BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
                     appState.reminders.attach(context)
                 }
                 .onReceive(RemindersSync.triggers) { _ in appState.reminders.schedule() }
+                .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in MoneyService.refreshWidgets(context) }
+                // Display currency or dollar rate changed: the widget follows right away (no-op when nothing changed).
+                .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).debounce(for: .milliseconds(300), scheduler: RunLoop.main)) { _ in
+                    MoneyService.refreshWidgets(context)
+                }
+                .onOpenURL { url in
+                    // Widget buttons: repeat a frequent entry, or open Money ready to type.
+                    guard url.scheme == "agenda", url.host() == "money" else { return }
+                    appState.selection = .money
+                    if !MoneyService.handle(url, context: context) { appState.pendingCommand = .newMoneyEntry }
+                }
                 .modifier(CommandHandler(semester: semester))
         } else {
             SetupWizardView()
@@ -51,6 +63,11 @@ struct MainSplitView: View {
         .id(appState.today)
         .environment(\.now, now)
         .task { await tick() }
+        // The view is rebuilt each new day (`.id` above), so this also runs after midnight.
+        .task {
+            MoneyService.chargeRecurring(context)
+            MoneyService.refreshWidgets(context)
+        }
         .onReceive(Self.dayChanges) { _ in
             now = .now
             appState.refreshDay()
@@ -89,6 +106,8 @@ struct MainSplitView: View {
             CalendarView(semester: semester)
         case .tasks:
             TasksPage(semester: semester)
+        case .money:
+            MoneyPage()
         case .area(let id):
             if let area = context.model(for: id) as? Area, area.semester != nil {
                 CourseView(area: area)
@@ -143,6 +162,9 @@ private struct CommandHandler: ViewModifier {
         case .newTask:
             appState.pendingCommand = nil
             showingNewTask = true
+        case .newMoneyEntry:
+            // MoneyPage's quick-add bar picks this up and focuses itself.
+            appState.selection = .money
         case .newEvent, .calendarPrevious, .calendarNext, .calendarToday:
             // CalendarView picks these up.
             appState.selection = .calendar

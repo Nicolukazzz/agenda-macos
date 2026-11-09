@@ -22,6 +22,9 @@ enum BackupService {
         let areas = try context.fetch(FetchDescriptor<Area>())
         let blocks = try context.fetch(FetchDescriptor<Block>())
         let tasks = try context.fetch(FetchDescriptor<TaskItem>())
+        let categories = try context.fetch(FetchDescriptor<MoneyCategory>())
+        let entries = try context.fetch(FetchDescriptor<MoneyEntry>())
+        let recurring = try context.fetch(FetchDescriptor<RecurringMoney>())
         return AgendaBackup(
             exportedAt: .now,
             semesters: semesters.map {
@@ -41,6 +44,17 @@ enum BackupService {
                       subtasks: $0.subtasks.sorted { $0.order < $1.order }.map { .init(title: $0.title, isDone: $0.isDone, order: $0.order) },
                       createsReminder: $0.createsReminder, reminderID: $0.reminderID, reminderExternalID: $0.reminderExternalID,
                       reminderListID: $0.reminderListID, reminderSnapshot: $0.reminderFieldsSnapshot)
+            },
+            moneyCategories: categories.map {
+                .init(id: key($0), name: $0.name, tag: $0.tag, emoji: $0.emoji, colorHex: $0.colorHex, kind: $0.kind, sortOrder: $0.sortOrder, isArchived: $0.isArchived)
+            },
+            moneyEntries: entries.map {
+                .init(title: $0.title, kind: $0.kind, amount: $0.amount, currency: $0.currency, copPerUSD: $0.copPerUSD,
+                      date: $0.date, createdAt: $0.createdAt, categoryID: $0.category.map(key), recurringID: $0.recurring.map(key))
+            },
+            recurring: recurring.map {
+                .init(id: key($0), title: $0.title, kind: $0.kind, amount: $0.amount, currency: $0.currency, cadence: $0.cadence,
+                      start: $0.start, lastCharged: $0.lastCharged, isActive: $0.isActive, categoryID: $0.category.map(key))
             })
     }
 
@@ -78,7 +92,38 @@ enum BackupService {
     // MARK: Restore
 
     /// Replaces everything in the database with the backup's contents.
+    /// Money is replaced only when the backup has it, so an older backup can't wipe it.
     static func restore(_ backup: AgendaBackup, into context: ModelContext) throws {
+        if let categoryRecords = backup.moneyCategories {
+            try context.delete(model: MoneyEntry.self)
+            try context.delete(model: RecurringMoney.self)
+            try context.delete(model: MoneyCategory.self)
+            var categories: [String: MoneyCategory] = [:]
+            for record in categoryRecords {
+                let category = MoneyCategory(name: record.name, emoji: record.emoji, colorHex: record.colorHex, kind: record.kind, sortOrder: record.sortOrder)
+                category.tag = record.tag
+                category.isArchived = record.isArchived
+                context.insert(category)
+                categories[record.id] = category
+            }
+            var recurring: [String: RecurringMoney] = [:]
+            for record in backup.recurring ?? [] {
+                let item = RecurringMoney(title: record.title, kind: record.kind, amount: record.amount, currency: record.currency,
+                                          cadence: record.cadence, start: record.start, category: record.categoryID.flatMap { categories[$0] })
+                item.lastCharged = record.lastCharged
+                item.isActive = record.isActive
+                context.insert(item)
+                recurring[record.id] = item
+            }
+            for record in backup.moneyEntries ?? [] {
+                let entry = MoneyEntry(title: record.title, kind: record.kind, amount: record.amount, currency: record.currency,
+                                       copPerUSD: record.copPerUSD, date: record.date, category: record.categoryID.flatMap { categories[$0] })
+                entry.createdAt = record.createdAt
+                entry.recurring = record.recurringID.flatMap { recurring[$0] }
+                context.insert(entry)
+            }
+        }
+
         try context.delete(model: Subtask.self)
         try context.delete(model: Block.self)
         try context.delete(model: TaskItem.self)

@@ -22,6 +22,7 @@ struct SidebarView: View {
                     .tag(SidebarItem.today)
                 Label("Calendar", systemImage: "calendar").tag(SidebarItem.calendar)
                 Label("Tasks", systemImage: "checklist").tag(SidebarItem.tasks)
+                Label("Money", systemImage: "banknote").tag(SidebarItem.money)
             }
 
             Section {

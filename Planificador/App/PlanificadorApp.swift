@@ -25,6 +25,18 @@ struct PlanificadorApp: App {
         .windowToolbarStyle(.unified)
         .commands { AgendaCommands(appState: appState) }
 
+        // Log money from anywhere. Lives while Agenda runs.
+        MenuBarExtra {
+            if case .success(let container) = store {
+                MoneyMenuBarView()
+                    .environment(appState)
+                    .modelContainer(container)
+            }
+        } label: {
+            Image(systemName: "banknote")
+        }
+        .menuBarExtraStyle(.window)
+
         Settings {
             if case .success(let container) = store {
                 AgendaSettingsView()
@@ -35,7 +47,7 @@ struct PlanificadorApp: App {
     }
 }
 
-/// Menu bar: navigation (⌘1–3), new task/event, backups.
+/// Menu bar: navigation (⌘1–4), new task/event, backups.
 struct AgendaCommands: Commands {
     let appState: AppState
 
@@ -45,6 +57,8 @@ struct AgendaCommands: Commands {
                 .keyboardShortcut("n")
             Button("New Event") { appState.pendingCommand = .newEvent }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
+            Button("New Expense or Income") { appState.pendingCommand = .newMoneyEntry }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
         }
         CommandGroup(after: .importExport) {
             Button("Back Up Now") { appState.pendingCommand = .backUpNow }
@@ -55,6 +69,7 @@ struct AgendaCommands: Commands {
             Button("Today") { appState.selection = .today }.keyboardShortcut("1")
             Button("Calendar") { appState.selection = .calendar }.keyboardShortcut("2")
             Button("Tasks") { appState.selection = .tasks }.keyboardShortcut("3")
+            Button("Money") { appState.selection = .money }.keyboardShortcut("4")
             Divider()
             Button("Go to Today") {
                 appState.selection = .calendar

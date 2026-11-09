@@ -183,8 +183,173 @@ extension TaskItem {
     }
 }
 
+/// A bucket for money: "Gasolina", "Suscripciones", "Sueldo". Expense and income categories are separate.
+@Model
+final class MoneyCategory {
+    var name: String
+    /// Quick-add tag without `#`, normalized like area tags.
+    var tag: String
+    var emoji: String
+    var colorHex: String
+    var kindRaw: String
+    var sortOrder: Int
+    var isArchived: Bool
+
+    @Relationship(deleteRule: .nullify, inverse: \MoneyEntry.category)
+    var entries: [MoneyEntry] = []
+
+    init(name: String, emoji: String, colorHex: String, kind: MoneyKind, sortOrder: Int) {
+        self.name = name
+        self.tag = TagSuggester.normalize(name)
+        self.emoji = emoji
+        self.colorHex = colorHex
+        self.kindRaw = kind.rawValue
+        self.sortOrder = sortOrder
+        self.isArchived = false
+    }
+
+    var kind: MoneyKind {
+        get { MoneyKind(rawValue: kindRaw) ?? .expense }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    static let defaults: [(name: String, emoji: String, hex: String, kind: MoneyKind)] = [
+        ("Comida", "🍔", "#F0A33A", .expense),
+        ("Gasolina", "⛽", "#E5534B", .expense),
+        ("Transporte", "🚕", "#D9822B", .expense),
+        ("Pareja", "❤️", "#E85D9A", .expense),
+        ("Belleza", "💈", "#B565D9", .expense),
+        ("Suscripciones", "🔁", "#8E6CF0", .expense),
+        ("Hogar", "🏠", "#4F7BF7", .expense),
+        ("Universidad", "🎓", "#2BA7C9", .expense),
+        ("Ocio", "🎮", "#3FB27F", .expense),
+        ("Compras", "🛍️", "#C9A227", .expense),
+        ("Salud", "💊", "#5AA469", .expense),
+        ("Otros", "📦", "#6B7A90", .expense),
+        ("Sueldo", "💼", "#2E9E6A", .income),
+        ("Freelance", "💻", "#3B8FD9", .income),
+        ("Regalo", "🎁", "#E07AB8", .income),
+        ("Otros ingresos", "💰", "#7A8B6B", .income),
+    ]
+
+    /// Inserts the starter categories once, the first time money is used.
+    static func seedDefaults(in context: ModelContext) {
+        guard (try? context.fetchCount(FetchDescriptor<MoneyCategory>())) == 0 else { return }
+        for (index, item) in defaults.enumerated() {
+            context.insert(MoneyCategory(name: item.name, emoji: item.emoji, colorHex: item.hex, kind: item.kind, sortOrder: index))
+        }
+    }
+}
+
+/// One expense or income. Amounts are `Decimal` so pesos and cents never drift.
+@Model
+final class MoneyEntry {
+    var title: String
+    var kindRaw: String
+    var amount: Decimal
+    var currencyRaw: String
+    /// Pesos per dollar when the entry was made; totals in either currency use this, not today's rate.
+    var copPerUSD: Decimal
+    /// When the money moved (the day matters, the time only orders entries within it).
+    var date: Date
+    var createdAt: Date
+    var category: MoneyCategory?
+    /// Set when the entry was logged automatically by a subscription or a salary.
+    var recurring: RecurringMoney?
+
+    init(title: String, kind: MoneyKind, amount: Decimal, currency: Currency, copPerUSD: Decimal, date: Date = .now, category: MoneyCategory? = nil) {
+        self.title = title
+        self.kindRaw = kind.rawValue
+        self.amount = amount
+        self.currencyRaw = currency.rawValue
+        self.copPerUSD = copPerUSD
+        self.date = date
+        self.createdAt = .now
+        self.category = category
+    }
+
+    var kind: MoneyKind {
+        get { MoneyKind(rawValue: kindRaw) ?? .expense }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    var currency: Currency {
+        get { Currency(rawValue: currencyRaw) ?? .cop }
+        set { currencyRaw = newValue.rawValue }
+    }
+
+    var value: MoneyValue { MoneyValue(kind: kind, amount: amount, currency: currency, copPerUSD: copPerUSD) }
+}
+
+/// Money that repeats: subscriptions (Claude, internet) and income (salary).
+/// On its day it logs a real `MoneyEntry`, so months show what was actually charged, never a forecast.
+@Model
+final class RecurringMoney {
+    var title: String
+    var kindRaw: String
+    var amount: Decimal
+    var currencyRaw: String
+    var cadenceRaw: String
+    /// First charge; later ones are counted from it.
+    var start: Date
+    /// Date of the newest charge already logged.
+    var lastCharged: Date?
+    var isActive: Bool
+    var category: MoneyCategory?
+
+    @Relationship(deleteRule: .nullify, inverse: \MoneyEntry.recurring)
+    var entries: [MoneyEntry] = []
+
+    init(title: String, kind: MoneyKind, amount: Decimal, currency: Currency, cadence: Cadence, start: Date, category: MoneyCategory?) {
+        self.title = title
+        self.kindRaw = kind.rawValue
+        self.amount = amount
+        self.currencyRaw = currency.rawValue
+        self.cadenceRaw = cadence.rawValue
+        self.start = start
+        self.isActive = true
+        self.category = category
+    }
+
+    var kind: MoneyKind {
+        get { MoneyKind(rawValue: kindRaw) ?? .expense }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    var currency: Currency {
+        get { Currency(rawValue: currencyRaw) ?? .cop }
+        set { currencyRaw = newValue.rawValue }
+    }
+
+    var cadence: Cadence {
+        get { Cadence(rawValue: cadenceRaw) ?? .monthly }
+        set { cadenceRaw = newValue.rawValue }
+    }
+
+    var schedule: RecurringSchedule { RecurringSchedule(start: start, cadence: cadence) }
+
+    func nextCharge(after date: Date = .now) -> Date? {
+        schedule.next(after: max(date, lastCharged ?? .distantPast), calendar: .autoupdatingCurrent)
+    }
+
+    /// Logs every charge due up to `now` that isn't logged yet. Returns how many were added.
+    @discardableResult
+    func chargeDue(now: Date = .now, copPerUSD: Decimal, in context: ModelContext) -> Int {
+        guard isActive, amount > 0 else { return 0 }
+        let calendar = Calendar.autoupdatingCurrent
+        let dates = schedule.due(after: lastCharged, through: RecurringSchedule.endOfDay(now, calendar: calendar), calendar: calendar)
+        for date in dates {
+            let entry = MoneyEntry(title: title, kind: kind, amount: amount, currency: currency, copPerUSD: copPerUSD, date: date, category: category)
+            entry.recurring = self
+            context.insert(entry)
+        }
+        if let last = dates.last { lastCharged = last }
+        return dates.count
+    }
+}
+
 enum AgendaSchema {
-    static let models: [any PersistentModel.Type] = [Semester.self, Area.self, Block.self, TaskItem.self, Subtask.self]
+    static let models: [any PersistentModel.Type] = [Semester.self, Area.self, Block.self, TaskItem.self, Subtask.self, MoneyCategory.self, MoneyEntry.self, RecurringMoney.self]
 }
 
 extension PersistentModel {

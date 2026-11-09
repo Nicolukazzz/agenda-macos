@@ -6,6 +6,7 @@ enum SidebarItem: Hashable {
     case today
     case calendar
     case tasks
+    case money
     case area(PersistentIdentifier)
 }
 
@@ -75,6 +76,7 @@ enum CalendarMode: String, CaseIterable, Identifiable {
 enum AppCommand: Equatable {
     case newTask
     case newEvent
+    case newMoneyEntry
     case exportBackup
     case importBackup
     case backUpNow

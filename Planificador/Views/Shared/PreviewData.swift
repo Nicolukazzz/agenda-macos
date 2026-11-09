@@ -41,6 +41,27 @@ enum PreviewData {
         context.insert(TaskItem(title: "Threads lab", dueDate: at(4, 23, 59), area: areas[1]))
         context.insert(TaskItem(title: "Pitch Reserbox", dueDate: at(9, 18), dueHasTime: true, area: areas[2]))
         context.insert(TaskItem(title: "Automata quiz", dueDate: at(16, 10), dueHasTime: true, area: areas[3]))
+
+        MoneyCategory.seedDefaults(in: context)
+        let categories = try! context.fetch(FetchDescriptor<MoneyCategory>())
+        func category(_ tag: String) -> MoneyCategory? { categories.first { $0.tag == tag } }
+        let money: [(String, MoneyKind, Decimal, Currency, String, Int)] = [
+            ("Sueldo", .income, 2_400_000, .cop, "sueldo", -6), ("Claude", .expense, 20, .usd, "suscripciones", -6),
+            ("Internet", .expense, 95_000, .cop, "hogar", -5), ("Gasolina", .expense, 80_000, .cop, "gasolina", -4),
+            ("Cena", .expense, 120_000, .cop, "pareja", -3), ("Peluquería", .expense, 25_000, .cop, "belleza", -2),
+            ("Almuerzo", .expense, 18_000, .cop, "comida", -1), ("Freelance logo", .income, 150, .usd, "freelance", -1),
+            ("Café", .expense, 7_500, .cop, "comida", 0), ("Uber", .expense, 14_000, .cop, "transporte", 0),
+        ]
+        for (title, kind, amount, currency, tag, offset) in money {
+            context.insert(MoneyEntry(title: title, kind: kind, amount: amount, currency: currency, copPerUSD: 4_000,
+                                      date: at(offset, 12), category: category(tag)))
+        }
+        let claude = RecurringMoney(title: "Claude", kind: .expense, amount: 20, currency: .usd, cadence: .monthly,
+                                    start: math.add(months: -2, to: at(4, 9)), category: category("suscripciones"))
+        claude.lastCharged = math.add(months: -1, to: at(4, 9))
+        context.insert(claude)
+        context.insert(RecurringMoney(title: "Internet", kind: .expense, amount: 95_000, currency: .cop, cadence: .monthly,
+                                      start: at(12, 9), category: category("hogar")))
         return container
     }()
 
@@ -151,4 +172,13 @@ enum PreviewData {
     AgendaSettingsView()
         .environment(AppState())
         .modelContainer(PreviewData.container)
+}
+
+#Preview("Money") {
+    let state = AppState()
+    state.selection = .money
+    return RootView()
+        .environment(state)
+        .modelContainer(PreviewData.container)
+        .frame(width: 1200, height: 900)
 }

@@ -80,20 +80,75 @@ public struct AgendaBackup: Codable, Equatable, Sendable {
         }
     }
 
+    public struct MoneyCategoryRecord: Codable, Equatable, Sendable {
+        public var id: String
+        public var name: String
+        public var tag: String
+        public var emoji: String
+        public var colorHex: String
+        public var kind: MoneyKind
+        public var sortOrder: Int
+        public var isArchived: Bool
+        public init(id: String, name: String, tag: String, emoji: String, colorHex: String, kind: MoneyKind, sortOrder: Int, isArchived: Bool) {
+            self.id = id; self.name = name; self.tag = tag; self.emoji = emoji; self.colorHex = colorHex; self.kind = kind; self.sortOrder = sortOrder; self.isArchived = isArchived
+        }
+    }
+
+    public struct MoneyEntryRecord: Codable, Equatable, Sendable {
+        public var title: String
+        public var kind: MoneyKind
+        public var amount: Decimal
+        public var currency: Currency
+        public var copPerUSD: Decimal
+        public var date: Date
+        public var createdAt: Date
+        public var categoryID: String?
+        public var recurringID: String?
+        public init(title: String, kind: MoneyKind, amount: Decimal, currency: Currency, copPerUSD: Decimal, date: Date, createdAt: Date, categoryID: String?, recurringID: String? = nil) {
+            self.title = title; self.kind = kind; self.amount = amount; self.currency = currency; self.copPerUSD = copPerUSD; self.date = date; self.createdAt = createdAt; self.categoryID = categoryID
+            self.recurringID = recurringID
+        }
+    }
+
+    public struct RecurringRecord: Codable, Equatable, Sendable {
+        public var id: String
+        public var title: String
+        public var kind: MoneyKind
+        public var amount: Decimal
+        public var currency: Currency
+        public var cadence: Cadence
+        public var start: Date
+        public var lastCharged: Date?
+        public var isActive: Bool
+        public var categoryID: String?
+        public init(id: String, title: String, kind: MoneyKind, amount: Decimal, currency: Currency, cadence: Cadence, start: Date, lastCharged: Date?, isActive: Bool, categoryID: String?) {
+            self.id = id; self.title = title; self.kind = kind; self.amount = amount; self.currency = currency; self.cadence = cadence
+            self.start = start; self.lastCharged = lastCharged; self.isActive = isActive; self.categoryID = categoryID
+        }
+    }
+
     public var version: Int
     public var exportedAt: Date
     public var semesters: [SemesterRecord]
     public var areas: [AreaRecord]
     public var blocks: [BlockRecord]
     public var tasks: [TaskRecord]
+    /// Money. Nil in backups written before it existed; restoring those leaves money untouched.
+    public var moneyCategories: [MoneyCategoryRecord]?
+    public var moneyEntries: [MoneyEntryRecord]?
+    public var recurring: [RecurringRecord]?
 
-    public init(exportedAt: Date, semesters: [SemesterRecord], areas: [AreaRecord], blocks: [BlockRecord], tasks: [TaskRecord]) {
+    public init(exportedAt: Date, semesters: [SemesterRecord], areas: [AreaRecord], blocks: [BlockRecord], tasks: [TaskRecord],
+                moneyCategories: [MoneyCategoryRecord]? = nil, moneyEntries: [MoneyEntryRecord]? = nil, recurring: [RecurringRecord]? = nil) {
         self.version = Self.currentVersion
         self.exportedAt = exportedAt
         self.semesters = semesters
         self.areas = areas
         self.blocks = blocks
         self.tasks = tasks
+        self.moneyCategories = moneyCategories
+        self.moneyEntries = moneyEntries
+        self.recurring = recurring
     }
 
     public func encoded() throws -> Data {

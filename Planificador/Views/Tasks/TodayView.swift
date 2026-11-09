@@ -8,6 +8,8 @@ struct TodayView: View {
 
     @Query private var blocks: [Block]
     @Query private var tasks: [TaskItem]
+    @Query(sort: \MoneyEntry.date, order: .reverse) private var money: [MoneyEntry]
+    @Environment(AppState.self) private var appState
     @Environment(\.now) private var now
     @State private var editingTask: TaskItem?
     @State private var editingBlock: CalendarItem?
@@ -73,10 +75,35 @@ struct TodayView: View {
             if progress.total == 0 || progress.done < progress.total {
                 TaskListView(buckets: [.overdue, .today], hidesCompleted: true, emptyMessage: "Nothing due today.") { editingTask = $0 }
             }
+
+            moneySection
         }
         .navigationTitle("Today")
         .navigationSubtitle("Semester \(semester.name)")
         .sheet(item: $editingTask) { TaskEditorView(task: $0, semester: semester) }
         .sheet(item: $editingBlock) { BlockEditorView(target: .existing($0), semester: semester) }
+    }
+
+    // MARK: Money
+
+    /// Spent today and this month, in the display currency. Click to open Money.
+    private var moneySection: some View {
+        let display = MoneyService.displayCurrency
+        let today = math.startOfDay(now)
+        let monthStart = math.startOfMonth(containing: now)
+        let month = money.prefix { $0.date >= monthStart }.filter { $0.date <= now }
+        let spentToday = MoneyTotals(month.filter { $0.date >= today }.map(\.value), in: display).expense
+        let totals = MoneyTotals(month.map(\.value), in: display)
+        return VStack(alignment: .leading, spacing: Theme.Space.s) {
+            SectionHeader(title: "Money", detail: nil) {
+                Button("Open Money", systemImage: "arrow.up.right") { appState.selection = .money }
+                    .labelStyle(.iconOnly).buttonStyle(.glass).help("Open Money")
+            }
+            HStack(spacing: Theme.Space.m) {
+                StatTile(title: "Spent Today", systemImage: "cup.and.saucer", value: display.format(spentToday))
+                StatTile(title: "This Month", systemImage: "calendar", value: display.format(totals.expense),
+                         detail: totals.income > 0 ? "Balance \(display.format(totals.net, signed: true))" : nil)
+            }
+        }
     }
 }
