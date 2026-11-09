@@ -46,6 +46,9 @@ struct BlockEditorView: View {
     @State private var triedToSave = false
     @State private var kind: NewItemKind = .event
     @State private var taskHasTime = false
+    @State private var taskHasDue = true
+    @State private var taskPriority = 0
+    @State private var taskCreatesReminder = false
 
     private let math = CalendarMath()
 
@@ -120,6 +123,7 @@ struct BlockEditorView: View {
         }
         .animation(Theme.Motion.snappy, value: repeats)
         .animation(Theme.Motion.snappy, value: taskHasTime)
+        .animation(Theme.Motion.snappy, value: taskHasDue)
         .confirmationDialog("This event repeats", isPresented: $askingScope) {
             Button("Only This Event") { save(.onlyThis) }
             Button("All Events") { save(.allEvents) }
@@ -134,25 +138,11 @@ struct BlockEditorView: View {
 
     // MARK: Sections
 
-    @ViewBuilder
+    /// Same form as the task editor, so every option (priority, "Create reminder"…) is here too.
     private var taskCards: some View {
-        Card {
-            CardRow(icon: "calendar") {
-                Text("Due")
-                Spacer()
-                DatePill(date: $day, showsIcon: false)
-            }
-            CardDivider()
-            CardRow(icon: "clock", iconColor: taskHasTime ? .accentColor : .secondary) {
-                Text("Time")
-                Spacer()
-                if taskHasTime { TimePill(time: $startTime, showsIcon: false) }
-                Toggle("Time", isOn: $taskHasTime).toggleStyle(.switch).labelsHidden()
-            }
-        }
-        Card {
-            CardRow(icon: "text.alignleft") { CardTextField(placeholder: "Notes", text: $notes, axis: .vertical) }
-        }
+        TaskFormCards(
+            hasDue: $taskHasDue, dueDay: $day, dueTime: $startTime, hasTime: $taskHasTime,
+            priority: $taskPriority, createsReminder: $taskCreatesReminder, notes: $notes)
     }
 
     @ViewBuilder
@@ -286,10 +276,11 @@ struct BlockEditorView: View {
 
     private func saveTask() {
         let (cleanTitle, finalArea) = resolved
-        let due = taskHasTime ? newStart : math.date(day, atMinutes: 23 * 60 + 59)
+        let due = taskHasDue ? (taskHasTime ? newStart : math.date(day, atMinutes: 23 * 60 + 59)) : nil
         let task = TaskItem(
             title: cleanTitle.isEmpty ? (finalArea?.name ?? "Task") : cleanTitle,
-            dueDate: due, dueHasTime: taskHasTime, area: finalArea, notes: notes)
+            dueDate: due, dueHasTime: taskHasDue && taskHasTime, area: finalArea, priority: taskPriority, notes: notes)
+        task.createsReminder = taskCreatesReminder
         context.insert(task)
         try? context.save()
         dismiss()

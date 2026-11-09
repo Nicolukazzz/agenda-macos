@@ -7,7 +7,6 @@ import SwiftUI
 struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
-    @Environment(AppState.self) private var appState
     @Bindable var task: TaskItem
     let semester: Semester
 
@@ -46,43 +45,12 @@ struct TaskEditorView: View {
             }
             .zIndex(1)
 
-            Card {
-                CardRow(icon: "calendar", iconColor: hasDue ? .accentColor : .secondary) {
-                    CardToggle(title: "Due date", isOn: $hasDue)
-                }
-                if hasDue {
-                    CardDivider()
-                    CardRow(icon: "calendar.badge.exclamationmark") {
-                        Text("Day")
-                        Spacer()
-                        DatePill(date: $dueDay, showsIcon: false)
-                    }
-                    CardDivider()
-                    CardRow(icon: "clock", iconColor: task.dueHasTime ? .accentColor : .secondary) {
-                        Text("Time")
-                        Spacer()
-                        if task.dueHasTime {
-                            TimePill(time: $dueTime, showsIcon: false)
-                        }
-                        Toggle("Time", isOn: $task.dueHasTime).toggleStyle(.switch).labelsHidden()
-                    }
-                }
-                CardDivider()
-                CardRow(icon: "exclamationmark.circle") {
-                    Text("Priority")
-                    Spacer()
-                    Chip(title: "None", isSelected: task.priority == 0) { task.priority = 0 }
-                    Chip(title: "! High", colorHex: "#F0A33A", isSelected: task.priority == 1, showsDot: false) { task.priority = 1 }
-                    Chip(title: "!! Urgent", colorHex: "#E5534B", isSelected: task.priority == 2, showsDot: false) { task.priority = 2 }
-                }
-            }
-
-            reminderCard
-            subtasksCard
-            scheduleCard
-
-            Card {
-                CardRow(icon: "text.alignleft") { CardTextField(placeholder: "Notes", text: $task.notes, axis: .vertical) }
+            TaskFormCards(
+                hasDue: $hasDue, dueDay: $dueDay, dueTime: $dueTime, hasTime: $task.dueHasTime,
+                priority: $task.priority, createsReminder: $task.createsReminder, notes: $task.notes
+            ) {
+                subtasksCard
+                scheduleCard
             }
         } footer: {
             ActionBar(
@@ -98,37 +66,12 @@ struct TaskEditorView: View {
         .onChange(of: dueDay) { applyDue() }
         .onChange(of: dueTime) { applyDue() }
         .onChange(of: task.dueHasTime) { applyDue() }
-        .onChange(of: task.createsReminder) {
-            if task.createsReminder { Task { await appState.reminders.requestAccess() } }
-        }
-        .animation(Theme.Motion.snappy, value: task.createsReminder)
         .confirmationDialog("Delete “\(task.title)”?", isPresented: $confirmingDelete) {
             Button("Delete Task", role: .destructive) {
                 context.delete(task)
                 try? context.save()
                 dismiss()
             }
-        }
-    }
-
-    // MARK: Reminders
-
-    private var reminderCard: some View {
-        Card {
-            CardRow(icon: "checklist", iconColor: task.createsReminder ? .accentColor : .secondary) {
-                CardToggle(title: "Create reminder", isOn: $task.createsReminder)
-            }
-            if task.createsReminder {
-                CardNote(text: reminderNote)
-            }
-        }
-    }
-
-    private var reminderNote: String {
-        switch appState.reminders.access {
-        case .granted: "Synced with Reminders and your iPhone. Turning this off removes the reminder."
-        case .notDetermined: "Agenda will ask for access to Reminders."
-        case .denied: "Agenda can’t reach Reminders. Allow it in System Settings › Privacy & Security › Reminders."
         }
     }
 

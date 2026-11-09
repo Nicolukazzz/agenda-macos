@@ -100,6 +100,7 @@ enum PreviewData {
     let semester = try! PreviewData.container.mainContext.fetch(FetchDescriptor<Semester>()).first!
     let start = CalendarMath().date(.now, atMinutes: 9 * 60)
     return BlockEditorView(target: .new(start: start, end: start.addingTimeInterval(3600), area: nil, kind: .task), semester: semester)
+        .environment(AppState())
         .modelContainer(PreviewData.container)
 }
 
