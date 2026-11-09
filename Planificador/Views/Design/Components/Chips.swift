@@ -29,6 +29,7 @@ struct Chip: View {
             .foregroundStyle(isSelected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
         }
         .buttonStyle(.plain)
+        .hoverLift(scale: 1.05)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 

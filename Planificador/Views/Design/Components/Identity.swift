@@ -70,6 +70,7 @@ struct ColorSwatchPicker: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .hoverLift(scale: 1.12)
                 .accessibilityLabel("Color \(color)")
                 .accessibilityAddTraits(color == hex ? .isSelected : [])
             }
@@ -88,6 +89,7 @@ struct ColorSwatchMenu: View {
             AreaDot(hex: hex, size: 14).padding(4).contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .hoverLift(scale: 1.05)
         .popover(isPresented: $isOpen, arrowEdge: .bottom) {
             ColorSwatchPicker(hex: $hex)
                 .padding(Theme.Space.m)

@@ -128,5 +128,6 @@ struct BigButton: View {
         .background(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14)), in: Capsule())
         .glassEffect(.regular.interactive(), in: .capsule)
         .shadow(color: prominent ? tint.opacity(0.25) : .clear, radius: 8, y: 3)
+        .hoverLift(scale: 1.015)
     }
 }

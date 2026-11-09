@@ -49,7 +49,7 @@ struct MoneyPage: View {
             RecurringCard(display: display, variableSpent: variableSpent, categories: categories)
             if monthEntries.isEmpty {
                 EmptyState(title: "Nothing logged in \(monthName)", systemImage: "banknote",
-                           message: "Type what you spent or earned above. Every entry feeds the totals and charts.")
+                           message: "Click Add Expense or Add Income. Every entry feeds the totals and charts.")
             } else {
                 if totals.expense > 0 {
                     categoryCard
@@ -184,8 +184,7 @@ struct MoneyPage: View {
                 Button("Not Now") {
                     withAnimation(Theme.Motion.snappy) { dismissedRaw = (dismissed.union([suggestion.key])).sorted().joined(separator: "|") }
                 }
-                .buttonStyle(.plain)
-                .foregroundStyle(.secondary)
+                .buttonStyle(.glass)
             }
         }
         .padding(Theme.Space.l)
@@ -280,6 +279,7 @@ struct MoneyPage: View {
             .padding(.horizontal, Theme.Space.s)
             .contentShape(Rectangle())
             .background(selected ? AnyShapeStyle(.tint.opacity(0.14)) : AnyShapeStyle(.clear), in: RoundedRectangle(cornerRadius: Theme.Radius.control))
+            .hoverHighlight(inset: 0)
         }
         .buttonStyle(.plain)
         .disabled(slice.category == nil)
@@ -377,6 +377,7 @@ struct MoneyPage: View {
             .padding(.vertical, Theme.Space.s)
             .frame(minHeight: 60)
             .contentShape(Rectangle())
+            .hoverHighlight()
         }
         .buttonStyle(.plain)
         .contextMenu {

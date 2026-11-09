@@ -29,6 +29,7 @@ struct CheckCircle: View {
                 .padding(-hitInset)
         }
         .buttonStyle(.plain)
+        .hoverLift(scale: 1.12)
         .accessibilityLabel(shown ? "Mark as not done" : "Mark as done")
     }
 
@@ -80,6 +81,7 @@ struct EventChip: View {
         .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16, alignment: .leading)
         .background(Theme.Palette.eventFill(item.colorHex).opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.Radius.chip - 2))
         .contentShape(Rectangle())
+        .hoverLift(scale: 1.03)
         .onTapGesture { onOpen(item) }
         .draggable(CalendarDragPayload.block(item)) {
             Text(item.block.title).font(Theme.Font.chip).padding(Theme.Space.xs)
@@ -108,6 +110,7 @@ struct TaskChip: View {
                 .lineLimit(1)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
+                .hoverLift(scale: 1.03)
                 .onTapGesture { onOpen(task) }
                 .draggable(CalendarDragPayload.task(task)) {
                     Text(task.title).font(Theme.Font.chip).padding(Theme.Space.xs)
@@ -170,6 +173,7 @@ struct EventRow: View {
         .opacity(isPast ? 0.5 : 1)
         .animation(Theme.Motion.standard, value: now)
         .contentShape(Rectangle())
+        .hoverHighlight()
         .onTapGesture { onOpen(item) }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)

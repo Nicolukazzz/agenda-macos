@@ -107,11 +107,15 @@ struct TodayView: View {
                 Button("Open Money", systemImage: "arrow.up.right") { appState.selection = .money }
                     .labelStyle(.iconOnly).buttonStyle(.glass).help("Open Money")
             }
+            Button { appState.selection = .money } label: {
             HStack(spacing: Theme.Space.m) {
                 StatTile(title: "Spent Today", systemImage: "cup.and.saucer", value: display.format(spentToday))
                 StatTile(title: "This Month", systemImage: "calendar", value: display.format(totals.expense),
                          detail: totals.income > 0 ? "Balance \(display.format(totals.net, signed: true))" : nil)
             }
+            }
+            .buttonStyle(.plain)
+            .hoverLift(scale: 1.01)
         }
     }
 }

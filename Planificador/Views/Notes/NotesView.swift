@@ -123,6 +123,7 @@ private struct NoteListRow: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .hoverHighlight(inset: 0)
         .help(note.url.path(percentEncoded: false))
     }
 }

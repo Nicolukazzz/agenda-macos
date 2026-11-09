@@ -332,6 +332,7 @@ private struct WeekBlockView: View {
         .shadow(color: .black.opacity(drag == .zero ? 0 : 0.2), radius: 8, y: 4)
         .offset(x: CGFloat(dayShift) * columnWidth, y: CGFloat(shiftedMinutes) * pointsPerMinute)
         .zIndex(drag == .zero ? 0 : 1)
+        .hoverLift(scale: 1.01)
         .onTapGesture { onOpen(item) }
         .gesture(
             DragGesture(minimumDistance: 4)

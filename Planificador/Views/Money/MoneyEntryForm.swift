@@ -152,6 +152,7 @@ struct MoneyEntryForm: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .hoverLift(scale: 1.04)
                 .accessibilityAddTraits(selected ? .isSelected : [])
             }
         }

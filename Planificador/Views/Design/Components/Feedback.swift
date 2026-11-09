@@ -13,6 +13,8 @@ struct EmptyState: View {
         } description: {
             if let message { Text(message) }
         }
+        // Pages stack content leading-aligned; an empty state always sits in the middle.
+        .frame(maxWidth: .infinity)
     }
 }
 

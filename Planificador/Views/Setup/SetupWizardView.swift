@@ -106,6 +106,7 @@ struct SetupWizardView: View {
                             }
                         }
                         .contentShape(Rectangle())
+                        .hoverHighlight(inset: 0)
                         .onTapGesture { selectedSemester = folder.name }
                         .accessibilityAddTraits(.isButton)
                     }

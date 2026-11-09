@@ -25,8 +25,7 @@ struct RecurringCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
             SectionHeader(title: "Recurring", detail: detail) {
-                Button("Add Recurring", systemImage: "plus") { creating = true }
-                    .labelStyle(.iconOnly)
+                Button("Add", systemImage: "plus") { creating = true }
                     .buttonStyle(.glass)
                     .help("Add a subscription or a salary")
             }
@@ -84,6 +83,7 @@ struct RecurringCard: View {
             .padding(.vertical, Theme.Space.s)
             .frame(minHeight: 60)
             .contentShape(Rectangle())
+            .hoverHighlight()
         }
         .buttonStyle(.plain)
     }

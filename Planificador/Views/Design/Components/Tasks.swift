@@ -86,6 +86,7 @@ struct TaskRow: View {
             Spacer()
         }
         .contentShape(Rectangle())
+        .hoverHighlight()
         .onTapGesture { onOpen(task) }
         .accessibilityElement(children: .contain)
     }

@@ -55,6 +55,7 @@ struct MoneyMenuBarView: View {
                 Spacer()
                 Button("Quit Agenda") { NSApp.terminate(nil) }
                     .buttonStyle(.plain)
+                    .hoverLift()
                     .foregroundStyle(.secondary)
             }
         }

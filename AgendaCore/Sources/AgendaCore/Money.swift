@@ -260,8 +260,10 @@ extension Currency {
     public func format(_ amount: Decimal, signed: Bool = false) -> String {
         var style = Decimal.FormatStyle.Currency(code: rawValue, locale: Locale(identifier: "es_CO"))
             .precision(.fractionLength(fractionDigits))
-        if signed { style = style.sign(strategy: .always()) }
-        return Money.rounded(amount, for: self).formatted(style)
+        let value = Money.rounded(amount, for: self)
+        // "+$ 0" reads like a gain; zero never gets a sign.
+        if signed, value != 0 { style = style.sign(strategy: .always()) }
+        return value.formatted(style)
     }
 }
 

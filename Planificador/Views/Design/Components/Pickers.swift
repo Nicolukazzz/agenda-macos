@@ -114,6 +114,7 @@ struct MonthPicker: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .hoverLift(scale: 1.08)
         .accessibilityLabel(day.agenda(date: .complete, time: .omitted))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
@@ -205,6 +206,7 @@ struct TimeList: View {
             .foregroundStyle(isSelected ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
         }
         .buttonStyle(.plain)
+        .hoverHighlight(inset: 0)
         .id(minutes)
     }
 }
@@ -230,6 +232,7 @@ struct WeekdayCircles: View {
                         .foregroundStyle(isOn ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 }
                 .buttonStyle(.plain)
+                .hoverLift(scale: 1.08)
                 .help(Weekdays.name(weekday))
                 .accessibilityLabel(Weekdays.name(weekday))
                 .accessibilityAddTraits(isOn ? .isSelected : [])
