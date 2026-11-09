@@ -22,7 +22,7 @@ struct CheckCircle: View {
                 .foregroundStyle(Color(hex: colorHex))
                 .contentTransition(.symbolEffect(.replace))
                 .symbolEffect(.bounce, value: shown)
-                .overlay { Burst(trigger: celebrating, color: Color(hex: colorHex), size: size) }
+                .celebration(celebrating, color: Color(hex: colorHex), size: size)
                 // Clickable area grows to `minHitTarget` without changing the layout.
                 .padding(hitInset)
                 .contentShape(Rectangle())

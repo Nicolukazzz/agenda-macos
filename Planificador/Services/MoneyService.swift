@@ -1,5 +1,7 @@
 import AgendaCore
+import AppKit
 import Foundation
+import KeyboardShortcuts
 import OSLog
 import SwiftData
 import WidgetKit
@@ -98,6 +100,20 @@ enum MoneyService {
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             log.error("Widget snapshot failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+}
+
+extension KeyboardShortcuts.Name {
+    /// Global "log an expense" hotkey. No default: the user picks one in Settings.
+    static let logMoney = Self("logMoney")
+}
+
+extension MoneyService {
+    /// From any app: bring Agenda forward with the new-expense form open.
+    static func listenForHotkey() {
+        KeyboardShortcuts.onKeyUp(for: .logMoney) {
+            if let url = URL(string: "agenda://money/new") { NSWorkspace.shared.open(url) }
         }
     }
 }

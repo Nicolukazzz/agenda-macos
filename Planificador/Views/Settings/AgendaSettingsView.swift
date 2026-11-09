@@ -1,5 +1,6 @@
 import AgendaCore
 import AppKit
+import KeyboardShortcuts
 import SwiftData
 import SwiftUI
 
@@ -60,6 +61,13 @@ struct AgendaSettingsView: View {
                             .frame(width: 120)
                     }
                     CardNote(text: "Agenda is offline, so update this when the dollar moves. New entries save the rate of their day; past months keep theirs.")
+                    CardDivider()
+                    CardRow(icon: "keyboard") {
+                        Text("Log expense from anywhere")
+                        Spacer()
+                        KeyboardShortcuts.Recorder(for: .logMoney)
+                    }
+                    CardNote(text: "Press it in any app to open Agenda's Add Expense form. Pick a combination nothing else uses, like ⌃⌥M.")
                 }
             }
 

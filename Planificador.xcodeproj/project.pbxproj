@@ -12,6 +12,9 @@
 		37535ADF30A184AF00F41788 /* AgendaWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 37535ACF30A184AF00F41788 /* AgendaWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A6E1C0012F00000100000003 /* AgendaCore in Frameworks */ = {isa = PBXBuildFile; productRef = A6E1C0012F00000100000002 /* AgendaCore */; };
 		B7C2D0012F00000100000003 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = B7C2D0012F00000100000002 /* MijickCalendarView */; };
+		C8D3E0032F00000100000003 /* KeyboardShortcuts in Frameworks */ = {isa = PBXBuildFile; productRef = C8D3E0032F00000100000002 /* KeyboardShortcuts */; };
+		C8D3E0022F00000100000003 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = C8D3E0022F00000100000002 /* MarkdownUI */; };
+		C8D3E0012F00000100000003 /* Pow in Frameworks */ = {isa = PBXBuildFile; productRef = C8D3E0012F00000100000002 /* Pow */; };
 		A6E1C0012F00000100000006 /* AgendaCore in Frameworks */ = {isa = PBXBuildFile; productRef = A6E1C0012F00000100000005 /* AgendaCore */; };
 /* End PBXBuildFile section */
 
@@ -77,6 +80,9 @@
 			files = (
 				A6E1C0012F00000100000003 /* AgendaCore in Frameworks */,
 				B7C2D0012F00000100000003 /* MijickCalendarView in Frameworks */,
+				C8D3E0032F00000100000003 /* KeyboardShortcuts in Frameworks */,
+				C8D3E0022F00000100000003 /* MarkdownUI in Frameworks */,
+				C8D3E0012F00000100000003 /* Pow in Frameworks */,
 			);
 		};
 		37535ACC30A184AF00F41788 /* Frameworks */ = {
@@ -143,6 +149,9 @@
 			packageProductDependencies = (
 				A6E1C0012F00000100000002 /* AgendaCore */,
 				B7C2D0012F00000100000002 /* MijickCalendarView */,
+				C8D3E0032F00000100000002 /* KeyboardShortcuts */,
+				C8D3E0022F00000100000002 /* MarkdownUI */,
+				C8D3E0012F00000100000002 /* Pow */,
 			);
 			productName = Planificador;
 			productReference = 371DD1FE30896070004D47AE /* Agenda.app */;
@@ -199,6 +208,9 @@
 			packageReferences = (
 				A6E1C0012F00000100000001 /* XCLocalSwiftPackageReference "AgendaCore" */,
 				B7C2D0012F00000100000001 /* XCRemoteSwiftPackageReference "CalendarView" */,
+				C8D3E0032F00000100000001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */,
+				C8D3E0022F00000100000001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				C8D3E0012F00000100000001 /* XCRemoteSwiftPackageReference "Pow" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 371DD1FF30896070004D47AE /* Products */;
@@ -549,6 +561,30 @@
 				version = 1.1.1;
 			};
 		};
+		C8D3E0012F00000100000001 /* XCRemoteSwiftPackageReference "Pow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/EmergeTools/Pow.git";
+			requirement = {
+				kind = revision;
+				revision = 1b4b1dda28c50b95f0872927ee2226fe8b58950e;
+			};
+		};
+		C8D3E0022F00000100000001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.4.1;
+			};
+		};
+		C8D3E0032F00000100000001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/KeyboardShortcuts.git";
+			requirement = {
+				kind = exactVersion;
+				version = 3.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -564,6 +600,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = B7C2D0012F00000100000001 /* XCRemoteSwiftPackageReference "CalendarView" */;
 			productName = MijickCalendarView;
+		};
+		C8D3E0012F00000100000002 /* Pow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C8D3E0012F00000100000001 /* XCRemoteSwiftPackageReference "Pow" */;
+			productName = Pow;
+		};
+		C8D3E0022F00000100000002 /* MarkdownUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C8D3E0022F00000100000001 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
+			productName = MarkdownUI;
+		};
+		C8D3E0032F00000100000002 /* KeyboardShortcuts */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C8D3E0032F00000100000001 /* XCRemoteSwiftPackageReference "KeyboardShortcuts" */;
+			productName = KeyboardShortcuts;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

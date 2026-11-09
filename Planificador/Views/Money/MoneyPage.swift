@@ -1,5 +1,6 @@
 import AgendaCore
 import Charts
+import Pow
 import SwiftData
 import SwiftUI
 
@@ -100,6 +101,7 @@ struct MoneyPage: View {
                 .foregroundStyle(.secondary)
             Text(display.format(totals.expense))
                 .font(Theme.Font.hero)
+                .changeEffect(.shine(duration: 0.8), value: totals.expense)
                 .monospacedDigit()
                 .contentTransition(.numericText())
                 .lineLimit(1)

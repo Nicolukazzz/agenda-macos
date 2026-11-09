@@ -1,4 +1,5 @@
 import AppKit
+import Pow
 import SwiftUI
 
 // Visual rewards: what plays when something gets done.
@@ -19,41 +20,14 @@ enum Reward {
     }
 }
 
-/// A ring and sparks that fly out once each time `trigger` turns true. Put it in an overlay.
-struct Burst: View {
-    let trigger: Bool
-    var color: Color = .accentColor
-    /// Diameter of the thing it bursts from.
-    var size: CGFloat = 16
-
-    @State private var progress: CGFloat = 1
-
-    private static let sparks = 8
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(color, lineWidth: 1.5)
-                .frame(width: size, height: size)
-                .scaleEffect(1 + progress * 0.9)
-            ForEach(0..<Self.sparks, id: \.self) { index in
-                let angle = Angle.degrees(Double(index) / Double(Self.sparks) * 360)
-                let distance = size * (0.55 + progress * 0.65)
-                Circle()
-                    .fill(color)
-                    .frame(width: max(2, size / 6), height: max(2, size / 6))
-                    .offset(x: cos(angle.radians) * distance, y: sin(angle.radians) * distance)
-                    .scaleEffect(1 - progress * 0.6)
-            }
-        }
-        .opacity(1 - progress)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-        .onChange(of: trigger) { _, fired in
-            guard fired else { return }
-            progress = 0
-            withAnimation(.easeOut(duration: 0.55)) { progress = 1 }
-        }
+extension View {
+    /// Sparkles that spray out once each time `trigger` turns true (Pow's spray effect, in `color`).
+    func celebration(_ trigger: Bool, color: Color, size: CGFloat = 16) -> some View {
+        changeEffect(.spray(origin: .center) {
+            Image(systemName: "sparkle")
+                .font(.system(size: max(8, size * 0.55), weight: .bold))
+                .foregroundStyle(color)
+        }, value: trigger, isEnabled: trigger)
     }
 }
 
@@ -107,7 +81,7 @@ struct DayProgressCard: View {
                     }
                 }
                 .frame(width: 34, height: 34)
-                .overlay { Burst(trigger: isComplete, color: Theme.Palette.success, size: 34) }
+                .celebration(isComplete, color: Theme.Palette.success, size: 34)
                 .padding(.vertical, Theme.Space.xs)
 
                 VStack(alignment: .leading, spacing: Theme.Space.xxs) {

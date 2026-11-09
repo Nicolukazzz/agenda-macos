@@ -56,6 +56,7 @@ final class AppState {
         let defaults = UserDefaults.standard
         classesRootPath = defaults.string(forKey: Self.rootKey) ?? Self.defaultRootPath
         calendarMode = defaults.string(forKey: "calendarMode").flatMap(CalendarMode.init(rawValue:)) ?? .month
+        if !AppEnvironment.isPreview { MoneyService.listenForHotkey() }
     }
 
     var classesRootURL: URL {

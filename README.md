@@ -43,6 +43,15 @@ Planificador/
 scripts/              Install and icon scripts
 ```
 
+## Libraries
+
+One per job, all MIT, pinned in `Package.resolved`:
+
+- [MijickCalendarView](https://github.com/Mijick/CalendarView) — the date picker calendar.
+- [Pow](https://github.com/EmergeTools/Pow) — rewards and change effects (sparkles on completing, shine on new totals).
+- [MarkdownUI](https://github.com/gonzalezreal/swift-markdown-ui) — note previews.
+- [KeyboardShortcuts](https://github.com/sindresorhus/KeyboardShortcuts) — the global "log expense" hotkey.
+
 ## License
 
 [MIT](LICENSE)
