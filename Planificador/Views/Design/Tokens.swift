@@ -27,6 +27,8 @@ enum Theme {
 
     enum Size {
         static let rowIcon: CGFloat = 20
+        /// Smallest clickable area for small controls, even when they draw smaller.
+        static let minHitTarget: CGFloat = 24
         /// Leading inset of row separators: row padding + icon + spacing.
         static let rowInset: CGFloat = 48
         static let dot: CGFloat = 8
@@ -34,6 +36,7 @@ enum Theme {
         static let dayCircle: CGFloat = 30
         static let sheetWidth: CGFloat = 540
         static let contentMaxWidth: CGFloat = 720
+        static let peekWidth: CGFloat = 280
     }
 
     enum Font {
@@ -60,6 +63,7 @@ enum Theme {
         static let nowLine = Color.red
         static let danger = Color.red
         static let warning = Color.orange
+        static let success = Color.green
         /// Area color used when an item has no course.
         static let noAreaHex = "#6B7A90"
 
@@ -70,6 +74,12 @@ enum Theme {
     enum Motion {
         static let standard = Animation.smooth(duration: 0.28)
         static let snappy = Animation.snappy(duration: 0.2)
+        /// Springy, for rewards: a task checked off, a day cleared.
+        static let celebrate = Animation.spring(duration: 0.5, bounce: 0.35)
+        /// How long a checked task stays put (and its burst plays) before it moves or hides.
+        static let celebrationDelay = Duration.milliseconds(450)
+        /// Pointer rest time before a hover peek opens.
+        static let peekDelay = Duration.milliseconds(700)
     }
 }
 

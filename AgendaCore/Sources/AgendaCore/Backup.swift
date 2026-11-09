@@ -67,8 +67,16 @@ public struct AgendaBackup: Codable, Equatable, Sendable {
         public var completedAt: Date?
         public var createdAt: Date
         public var subtasks: [SubtaskRecord]
-        public init(id: String, title: String, notes: String, dueDate: Date?, dueHasTime: Bool, areaID: String?, priority: Int, isDone: Bool, completedAt: Date?, createdAt: Date, subtasks: [SubtaskRecord]) {
+        /// Reminders link. Optional so backups written before the Reminders sync still decode.
+        public var createsReminder: Bool?
+        public var reminderID: String?
+        public var reminderExternalID: String?
+        public var reminderListID: String?
+        public var reminderSnapshot: ReminderFields?
+        public init(id: String, title: String, notes: String, dueDate: Date?, dueHasTime: Bool, areaID: String?, priority: Int, isDone: Bool, completedAt: Date?, createdAt: Date, subtasks: [SubtaskRecord],
+                    createsReminder: Bool? = nil, reminderID: String? = nil, reminderExternalID: String? = nil, reminderListID: String? = nil, reminderSnapshot: ReminderFields? = nil) {
             self.id = id; self.title = title; self.notes = notes; self.dueDate = dueDate; self.dueHasTime = dueHasTime; self.areaID = areaID; self.priority = priority; self.isDone = isDone; self.completedAt = completedAt; self.createdAt = createdAt; self.subtasks = subtasks
+            self.createsReminder = createsReminder; self.reminderID = reminderID; self.reminderExternalID = reminderExternalID; self.reminderListID = reminderListID; self.reminderSnapshot = reminderSnapshot
         }
     }
 

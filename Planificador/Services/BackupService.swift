@@ -38,7 +38,9 @@ enum BackupService {
             tasks: tasks.map {
                 .init(id: key($0), title: $0.title, notes: $0.notes, dueDate: $0.dueDate, dueHasTime: $0.dueHasTime, areaID: $0.area.map(key),
                       priority: $0.priority, isDone: $0.isDone, completedAt: $0.completedAt, createdAt: $0.createdAt,
-                      subtasks: $0.subtasks.sorted { $0.order < $1.order }.map { .init(title: $0.title, isDone: $0.isDone, order: $0.order) })
+                      subtasks: $0.subtasks.sorted { $0.order < $1.order }.map { .init(title: $0.title, isDone: $0.isDone, order: $0.order) },
+                      createsReminder: $0.createsReminder, reminderID: $0.reminderID, reminderExternalID: $0.reminderExternalID,
+                      reminderListID: $0.reminderListID, reminderSnapshot: $0.reminderFieldsSnapshot)
             })
     }
 
@@ -104,6 +106,11 @@ enum BackupService {
             task.isDone = record.isDone
             task.completedAt = record.completedAt
             task.createdAt = record.createdAt
+            task.createsReminder = record.createsReminder ?? false
+            task.reminderID = record.reminderID
+            task.reminderExternalID = record.reminderExternalID
+            task.reminderListID = record.reminderListID
+            task.reminderFieldsSnapshot = record.reminderSnapshot
             context.insert(task)
             for sub in record.subtasks {
                 let subtask = Subtask(title: sub.title, order: sub.order)

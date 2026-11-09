@@ -126,6 +126,17 @@ final class TaskItem {
     var completedAt: Date?
     var createdAt: Date
 
+    /// "Create reminder": keep this task in step with Apple Reminders (and so the iPhone, via iCloud).
+    var createsReminder: Bool = false
+    /// `EKReminder.calendarItemIdentifier` of the linked reminder.
+    var reminderID: String?
+    /// `calendarItemExternalIdentifier`, the fallback when iCloud re-identifies the reminder.
+    var reminderExternalID: String?
+    /// The reminder's list. A missing reminder only counts as deleted while its list still exists.
+    var reminderListID: String?
+    /// JSON of the `ReminderFields` at the last sync: the base of the three-way merge.
+    var reminderSnapshot: Data?
+
     @Relationship(deleteRule: .cascade, inverse: \Subtask.task)
     var subtasks: [Subtask] = []
 
@@ -155,6 +166,20 @@ final class Subtask {
         self.title = title
         self.isDone = false
         self.order = order
+    }
+}
+
+extension TaskItem {
+    var reminderFieldsSnapshot: ReminderFields? {
+        get { reminderSnapshot.flatMap { try? JSONDecoder().decode(ReminderFields.self, from: $0) } }
+        set { reminderSnapshot = newValue.flatMap { try? JSONEncoder().encode($0) } }
+    }
+
+    func clearReminderLink() {
+        reminderID = nil
+        reminderExternalID = nil
+        reminderListID = nil
+        reminderSnapshot = nil
     }
 }
 

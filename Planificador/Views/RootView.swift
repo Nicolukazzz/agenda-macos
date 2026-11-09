@@ -1,5 +1,6 @@
 import AgendaCore
 import AppKit
+import Combine
 import SwiftData
 import SwiftUI
 import UniformTypeIdentifiers
@@ -16,7 +17,9 @@ struct RootView: View {
                     semester.normalizeDates()
                     ScheduleImporter.importPending(into: semester, context: context)
                     BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
+                    appState.reminders.attach(context)
                 }
+                .onReceive(RemindersSync.triggers) { _ in appState.reminders.schedule() }
                 .modifier(CommandHandler(semester: semester))
         } else {
             SetupWizardView()
@@ -24,11 +27,18 @@ struct RootView: View {
     }
 }
 
+extension EnvironmentValues {
+    /// The current time, ticking every minute. Views that show "now" read it to stay live.
+    @Entry var now: Date = .now
+}
+
 struct MainSplitView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.modelContext) private var context
     @Environment(\.undoManager) private var undoManager
     let semester: Semester
+
+    @State private var now = Date.now
 
     var body: some View {
         @Bindable var appState = appState
@@ -38,9 +48,36 @@ struct MainSplitView: View {
         } detail: {
             detail
         }
+        .id(appState.today)
+        .environment(\.now, now)
+        .task { await tick() }
+        .onReceive(Self.dayChanges) { _ in
+            now = .now
+            appState.refreshDay()
+        }
         // ⌘Z / ⌘⇧Z undo calendar and task changes.
         .onAppear { context.undoManager = undoManager }
         .onChange(of: undoManager) { context.undoManager = undoManager }
+    }
+
+    /// Wakes on each minute boundary; the day check also catches midnight.
+    private func tick() async {
+        while !Task.isCancelled {
+            let next = Calendar.autoupdatingCurrent.nextDate(after: .now, matching: DateComponents(second: 0), matchingPolicy: .nextTime)
+            try? await Task.sleep(for: .seconds(max(1, next?.timeIntervalSinceNow ?? 60)))
+            now = .now
+            appState.refreshDay()
+        }
+    }
+
+    /// Midnight, waking from sleep, or coming back to the app may all mean a new day.
+    private static var dayChanges: some Publisher<Notification, Never> {
+        Publishers.Merge3(
+            NotificationCenter.default.publisher(for: .NSCalendarDayChanged),
+            NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.didWakeNotification),
+            NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+        )
+        .receive(on: DispatchQueue.main)
     }
 
     @ViewBuilder

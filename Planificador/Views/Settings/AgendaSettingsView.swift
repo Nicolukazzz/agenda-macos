@@ -48,6 +48,35 @@ struct AgendaSettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: Theme.Space.s) {
+                SectionHeader("Reminders")
+                Card {
+                    CardRow(icon: "checklist", iconColor: appState.reminders.access == .granted ? .accentColor : .secondary) {
+                        VStack(alignment: .leading, spacing: Theme.Space.xxs) {
+                            Text(remindersTitle)
+                            Text(remindersDetail).font(Theme.Font.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        switch appState.reminders.access {
+                        case .notDetermined:
+                            Button("Allow Access") { Task { await appState.reminders.requestAccess() } }
+                                .buttonStyle(.glass)
+                        case .granted:
+                            Button("Sync Now") { appState.reminders.schedule(delay: .zero) }
+                                .buttonStyle(.glass)
+                        case .denied:
+                            Button("Open Settings") {
+                                if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders") {
+                                    NSWorkspace.shared.open(url)
+                                }
+                            }
+                            .buttonStyle(.glass)
+                        }
+                    }
+                    CardNote(text: "Tasks with “Create reminder” on go to your Reminders list and sync both ways. Open reminders made on the iPhone come in as tasks; deleting one there deletes the task here.")
+                }
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
                 SectionHeader("Backups")
                 Card {
                     CardRow(icon: "clock.arrow.circlepath") {
@@ -68,7 +97,21 @@ struct AgendaSettingsView: View {
                 }
             }
         }
-        .frame(width: 600, height: 520)
+        .frame(width: 600, height: 660)
+    }
+
+    private var remindersTitle: String {
+        switch appState.reminders.access {
+        case .granted: "Connected"
+        case .notDetermined: "Not connected"
+        case .denied: "No access"
+        }
+    }
+
+    private var remindersDetail: String {
+        if let error = appState.reminders.lastError { return "Last sync failed: \(error)" }
+        if let last = appState.reminders.lastSync { return "Last sync: \(last.agenda(date: .omitted, time: .shortened))" }
+        return appState.reminders.access == .denied ? "Allow Agenda in Privacy & Security" : "Syncs while Agenda is open"
     }
 
     private var latestText: String {
