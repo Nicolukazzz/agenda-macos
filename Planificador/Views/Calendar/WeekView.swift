@@ -292,7 +292,6 @@ private struct WeekBlockView: View {
 
     @State private var drag: CGSize = .zero
     @State private var resize: CGFloat = 0
-    @State private var hovering = false
 
     private func snap(_ points: CGFloat) -> Int {
         let minutes = Double(points / pointsPerMinute)
@@ -333,7 +332,6 @@ private struct WeekBlockView: View {
         .shadow(color: .black.opacity(drag == .zero ? 0 : 0.2), radius: 8, y: 4)
         .offset(x: CGFloat(dayShift) * columnWidth, y: CGFloat(shiftedMinutes) * pointsPerMinute)
         .zIndex(drag == .zero ? 0 : 1)
-        .onHover { hovering = $0 }
         .onTapGesture { onOpen(item) }
         .gesture(
             DragGesture(minimumDistance: 4)
@@ -345,7 +343,7 @@ private struct WeekBlockView: View {
                     onCommit(minutes, days, 0)
                 }
         )
-        .help(item.block.title)
+        .hoverPeek(isEnabled: drag == .zero && resize == 0) { EventPeek(item: item) }
     }
 
     private var resizeHandle: some View {
@@ -353,9 +351,7 @@ private struct WeekBlockView: View {
             .fill(.clear)
             .frame(height: 7)
             .contentShape(Rectangle())
-            .onHover { inside in
-                if inside { NSCursor.resizeUpDown.push() } else { NSCursor.pop() }
-            }
+            .pointerStyle(.frameResize(position: .bottom))
             .gesture(
                 DragGesture(minimumDistance: 2)
                     .onChanged { resize = $0.translation.height }

@@ -62,6 +62,22 @@ import SwiftUI
             Banner(title: "Banner title", message: "/path/to/folder") { Button("Action") {}.buttonStyle(.glass) }
             ValidationMessage(text: "Validation message")
 
+            SectionHeader("Rewards")
+            HStack(spacing: Theme.Space.l) {
+                CheckCircle(isOn: false, colorHex: hex, size: 17) {}
+                CheckCircle(isOn: true, colorHex: hex, size: 17) {}
+                ProgressRing(progress: 0.6).frame(width: 34, height: 34)
+            }
+            DayProgressCard(done: 2, total: 5)
+            DayProgressCard(done: 5, total: 5)
+
+            SectionHeader("Peek")
+            HStack(alignment: .top, spacing: Theme.Space.l) {
+                if let task = try? PreviewData.container.mainContext.fetch(FetchDescriptor<TaskItem>()).first {
+                    TaskPeek(task: task).padding(Theme.Space.l).frame(width: Theme.Size.peekWidth).background(.background, in: .rect(cornerRadius: Theme.Radius.card))
+                }
+            }
+
             SectionHeader("Actions")
             ActionBar(destructiveTitle: "Delete", primaryTitle: "Save") {}
         }

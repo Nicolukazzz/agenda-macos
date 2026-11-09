@@ -25,6 +25,18 @@ final class AppState {
     }
     var calendarAnchor = Date.now
 
+    /// Start of the current day. The main window is keyed on it, so a Mac that slept past midnight redraws for the new day.
+    private(set) var today = Calendar.autoupdatingCurrent.startOfDay(for: .now)
+
+    func refreshDay() {
+        let calendar = Calendar.autoupdatingCurrent
+        let now = calendar.startOfDay(for: .now)
+        guard now != today else { return }
+        // The calendar was showing "today": follow the new day instead of staying on the old one.
+        if calendar.isDate(calendarAnchor, inSameDayAs: today) { calendarAnchor = .now }
+        today = now
+    }
+
     /// Menu commands are handed to the views that own the model context.
     var pendingCommand: AppCommand?
 

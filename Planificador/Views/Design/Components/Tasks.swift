@@ -8,10 +8,11 @@ import SwiftUI
 struct DueLabel: View {
     let task: TaskItem
     var math = CalendarMath()
+    @Environment(\.now) private var now
 
     var body: some View {
         if let due = task.dueDate {
-            let overdue = !task.isDone && TaskBucket.bucket(due: due, hasTime: task.dueHasTime, now: .now, math: math) == .overdue
+            let overdue = !task.isDone && TaskBucket.bucket(due: due, hasTime: task.dueHasTime, now: now, math: math) == .overdue
             Label(Self.text(for: due, hasTime: task.dueHasTime, math: math), systemImage: "calendar")
                 .labelStyle(.titleAndIcon)
                 .foregroundStyle(overdue ? AnyShapeStyle(Theme.Palette.danger) : AnyShapeStyle(.secondary))

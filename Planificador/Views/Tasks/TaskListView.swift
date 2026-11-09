@@ -5,10 +5,13 @@ import SwiftUI
 /// Tasks grouped by due bucket (Overdue, Today, Tomorrow…), as cards. Reused by Tasks, Today and course pages.
 struct TaskListView: View {
     @Query(sort: \TaskItem.createdAt) private var allTasks: [TaskItem]
+    @Environment(\.now) private var now
 
     var area: Area?
     var buckets: [TaskBucket] = TaskBucket.allCases
     var showCompleted = false
+    /// Done tasks leave the list right away (Today: only what is still to do).
+    var hidesCompleted = false
     /// Shown (under `emptyTitle`) when no task matches.
     var emptyTitle = "Tasks"
     var emptyMessage = "Nothing here. Add a task above."
@@ -18,17 +21,18 @@ struct TaskListView: View {
 
     /// Done tasks stay visible (struck through) for a day, then hide unless "Show Completed" is on.
     private var visible: [TaskItem] {
-        let dayAgo = Date.now.addingTimeInterval(-86_400)
+        let dayAgo = now.addingTimeInterval(-86_400)
         return allTasks.filter { task in
             if let area { guard task.area === area else { return false } }
             else if let taskArea = task.area, taskArea.semester?.isActive != true { return false }
+            if task.isDone && hidesCompleted { return false }
             if task.isDone && !showCompleted { return (task.completedAt ?? .distantPast) > dayAgo }
             return true
         }
     }
 
     private var grouped: [(TaskBucket, [TaskItem])] {
-        let groups = Dictionary(grouping: visible) { TaskBucket.bucket(due: $0.dueDate, hasTime: $0.dueHasTime, now: .now, math: math) }
+        let groups = Dictionary(grouping: visible) { TaskBucket.bucket(due: $0.dueDate, hasTime: $0.dueHasTime, now: now, math: math) }
         return buckets.compactMap { bucket in
             guard let tasks = groups[bucket], !tasks.isEmpty else { return nil }
             return (bucket, tasks.sorted(by: Self.order))
@@ -62,9 +66,13 @@ struct TaskListView: View {
                         ForEach(Array(tasks.enumerated()), id: \.element.liveID) { index, task in
                             if index > 0 { CardDivider(inset: Theme.Space.xl + Theme.Space.l) }
                             TaskRow(task: task, showsCourse: area == nil, onOpen: onOpen)
+                                .transition(.asymmetric(
+                                    insertion: .opacity,
+                                    removal: .move(edge: .trailing).combined(with: .opacity)))
                         }
                     }
                 }
+                .transition(.opacity)
             }
         }
     }
