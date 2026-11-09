@@ -51,27 +51,88 @@ struct AgendaCalendar: View {
     @Binding var date: Date
     var onPick: () -> Void = {}
 
+    /// Month the header points at; changing it scrolls the calendar there.
+    @State private var shown: Date
     private let math = CalendarMath()
+    private static let yearsAround = 10
+
+    init(date: Binding<Date>, onPick: @escaping () -> Void = {}) {
+        _date = date
+        self.onPick = onPick
+        _shown = State(initialValue: CalendarMath().startOfMonth(containing: date.wrappedValue))
+    }
+
+    private var years: [Int] {
+        let current = math.calendar.component(.year, from: .now)
+        return Array((current - Self.yearsAround)...(current + Self.yearsAround))
+    }
 
     var body: some View {
-        MCalendarView(selectedDate: Binding(get: { date }, set: { picked in
-            guard let picked else { return }
-            date = math.date(picked, keepingTimeOf: date)
-            onPick()
-        }), selectedRange: nil) {
-            $0.startMonth(math.add(months: -24, to: .now))
-                .endMonth(math.add(months: 36, to: .now))
-                .firstWeekday(.monday)
-                .locale(.agenda)
-                .scrollTo(date: date)
-                .monthLabelToDaysDistance(Theme.Space.s)
-                .monthsSpacing(Theme.Space.xl)
-                .daysVerticalSpacing(Theme.Space.xxs)
-                .monthLabel(AgendaMonthLabel.init)
-                .weekdaysView(AgendaWeekdays.init)
-                .dayView(AgendaDayView.init)
+        VStack(spacing: Theme.Space.m) {
+            header
+            MCalendarView(selectedDate: Binding(get: { date }, set: { picked in
+                guard let picked else { return }
+                date = math.date(picked, keepingTimeOf: date)
+                onPick()
+            }), selectedRange: nil) {
+                $0.startMonth(math.add(months: -12 * Self.yearsAround, to: .now))
+                    .endMonth(math.add(months: 12 * Self.yearsAround, to: .now))
+                    .firstWeekday(.monday)
+                    .locale(.agenda)
+                    .scrollTo(date: shown)
+                    .monthLabelToDaysDistance(Theme.Space.s)
+                    .monthsSpacing(Theme.Space.xl)
+                    .daysVerticalSpacing(Theme.Space.xxs)
+                    .monthLabel(AgendaMonthLabel.init)
+                    .weekdaysView(AgendaWeekdays.init)
+                    .dayView(AgendaDayView.init)
+            }
         }
-        .frame(width: 300, height: 330)
+        .frame(width: 300, height: 380)
+    }
+
+    /// Month and year menus plus arrows, like the macOS Calendar header. Scrolling also works.
+    private var header: some View {
+        HStack(spacing: Theme.Space.xs) {
+            Menu(shown.agenda(.dateTime.month(.wide)).capitalized(with: .agenda)) {
+                ForEach(1...12, id: \.self) { month in
+                    Button(math.calendar.standaloneMonthSymbols[month - 1].capitalized(with: .agenda)) { jump(month: month) }
+                }
+            }
+            .fixedSize()
+            Menu(String(math.calendar.component(.year, from: shown))) {
+                ForEach(years, id: \.self) { year in
+                    Button(String(year)) { jump(year: year) }
+                }
+            }
+            .fixedSize()
+            Spacer()
+            ControlGroup {
+                Button("Previous Month", systemImage: "chevron.left") { move(-1) }
+                Button("Today", systemImage: "smallcircle.filled.circle") { go(to: .now) }
+                Button("Next Month", systemImage: "chevron.right") { move(1) }
+            }
+            .labelStyle(.iconOnly)
+            .fixedSize()
+        }
+        .menuStyle(.button)
+        .buttonStyle(.glass)
+        .font(Theme.Font.rowTitle.weight(.semibold))
+    }
+
+    private func move(_ months: Int) { go(to: math.add(months: months, to: shown)) }
+
+    private func jump(month: Int? = nil, year: Int? = nil) {
+        var parts = math.calendar.dateComponents([.year, .month], from: shown)
+        if let month { parts.month = month }
+        if let year { parts.year = year }
+        if let target = math.calendar.date(from: parts) { go(to: target) }
+    }
+
+    private func go(to target: Date) {
+        let month = math.startOfMonth(containing: target)
+        guard years.contains(math.calendar.component(.year, from: month)) else { return }
+        shown = month
     }
 }
 
@@ -79,8 +140,10 @@ private struct AgendaMonthLabel: MonthLabel {
     let month: Date
 
     func createContent() -> AnyView {
+        // Small: the header already names the month; this only marks month breaks while scrolling.
         Text(month.agenda(.dateTime.month(.wide).year()))
-            .font(Theme.Font.sectionTitle)
+            .font(Theme.Font.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Theme.Space.s)
             .erased()

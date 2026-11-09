@@ -131,6 +131,16 @@ struct RecurringEditor: View {
         _isActive = State(initialValue: item?.isActive ?? true)
     }
 
+    /// Plain-language explanation of the date row, so nobody has to guess what it means.
+    private var chargeNote: String {
+        let day = start.agenda(.dateTime.day().month(.wide))
+        let rhythm = Cadence.describe(cadence, every: every)
+        var note = "Pick a day it's charged, like your next bill: \(day). It repeats \(rhythm) from there."
+        if pastCharges == 1 { note += " That day already passed, so its charge is logged when you save." }
+        if pastCharges > 1 { note += " That's in the past, so \(pastCharges) charges up to today are logged when you save." }
+        return note
+    }
+
     private var pastCharges: Int {
         guard item == nil else { return 0 }
         let calendar = Calendar.autoupdatingCurrent
@@ -179,15 +189,11 @@ struct RecurringEditor: View {
                 }
                 CardDivider()
                 CardRow(icon: "calendar") {
-                    Text(item == nil ? "First charge" : "Charged from")
+                    Text(item == nil ? "Charged on" : "Repeats from")
                     Spacer()
                     DatePill(date: $start, showsIcon: false)
                 }
-                if pastCharges > 0 {
-                    CardNote(text: pastCharges == 1
-                             ? "The charge on this date is logged when you save."
-                             : "\(pastCharges) charges from this date up to today are logged when you save.")
-                }
+                CardNote(text: chargeNote)
                 CardDivider()
                 CardRow(icon: "square.grid.2x2") {
                     Text("Category")
