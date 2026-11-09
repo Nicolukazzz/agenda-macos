@@ -8,3 +8,6 @@ DerivedData/
 
 # Personal work log (kept local, not published)
 log.md
+
+# Local Claude Code settings
+.claude/

@@ -19,6 +19,9 @@ enum AppEnvironment {
 final class AppState {
     var selection: SidebarItem? = .calendar
 
+    /// Two-way sync of "Create reminder" tasks with Apple Reminders.
+    let reminders = RemindersSync()
+
     // Calendar
     var calendarMode: CalendarMode {
         didSet { if !AppEnvironment.isPreview { UserDefaults.standard.set(calendarMode.rawValue, forKey: "calendarMode") } }

@@ -7,6 +7,7 @@ import SwiftUI
 struct TaskEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(AppState.self) private var appState
     @Bindable var task: TaskItem
     let semester: Semester
 
@@ -76,6 +77,7 @@ struct TaskEditorView: View {
                 }
             }
 
+            reminderCard
             subtasksCard
             scheduleCard
 
@@ -96,12 +98,37 @@ struct TaskEditorView: View {
         .onChange(of: dueDay) { applyDue() }
         .onChange(of: dueTime) { applyDue() }
         .onChange(of: task.dueHasTime) { applyDue() }
+        .onChange(of: task.createsReminder) {
+            if task.createsReminder { Task { await appState.reminders.requestAccess() } }
+        }
+        .animation(Theme.Motion.snappy, value: task.createsReminder)
         .confirmationDialog("Delete “\(task.title)”?", isPresented: $confirmingDelete) {
             Button("Delete Task", role: .destructive) {
                 context.delete(task)
                 try? context.save()
                 dismiss()
             }
+        }
+    }
+
+    // MARK: Reminders
+
+    private var reminderCard: some View {
+        Card {
+            CardRow(icon: "checklist", iconColor: task.createsReminder ? .accentColor : .secondary) {
+                CardToggle(title: "Create reminder", isOn: $task.createsReminder)
+            }
+            if task.createsReminder {
+                CardNote(text: reminderNote)
+            }
+        }
+    }
+
+    private var reminderNote: String {
+        switch appState.reminders.access {
+        case .granted: "Synced with Reminders and your iPhone. Turning this off removes the reminder."
+        case .notDetermined: "Agenda will ask for access to Reminders."
+        case .denied: "Agenda can’t reach Reminders. Allow it in System Settings › Privacy & Security › Reminders."
         }
     }
 

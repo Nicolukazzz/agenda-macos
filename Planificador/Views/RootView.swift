@@ -17,7 +17,9 @@ struct RootView: View {
                     semester.normalizeDates()
                     ScheduleImporter.importPending(into: semester, context: context)
                     BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
+                    appState.reminders.attach(context)
                 }
+                .onReceive(RemindersSync.triggers) { _ in appState.reminders.schedule() }
                 .modifier(CommandHandler(semester: semester))
         } else {
             SetupWizardView()

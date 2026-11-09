@@ -132,6 +132,7 @@ enum PreviewData {
     let semester = try! context.fetch(FetchDescriptor<Semester>()).first!
     let task = try! context.fetch(FetchDescriptor<TaskItem>(sortBy: [SortDescriptor(\.createdAt)])).first!
     return TaskEditorView(task: task, semester: semester)
+        .environment(AppState())
         .modelContainer(PreviewData.container)
 }
 
