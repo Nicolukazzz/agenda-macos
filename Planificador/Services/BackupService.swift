@@ -53,7 +53,7 @@ enum BackupService {
                       date: $0.date, createdAt: $0.createdAt, categoryID: $0.category.map(key), recurringID: $0.recurring.map(key))
             },
             recurring: recurring.map {
-                .init(id: key($0), title: $0.title, kind: $0.kind, amount: $0.amount, currency: $0.currency, cadence: $0.cadence,
+                .init(id: key($0), title: $0.title, kind: $0.kind, amount: $0.amount, currency: $0.currency, cadence: $0.cadence, every: $0.every,
                       start: $0.start, lastCharged: $0.lastCharged, isActive: $0.isActive, categoryID: $0.category.map(key))
             })
     }
@@ -110,6 +110,7 @@ enum BackupService {
             for record in backup.recurring ?? [] {
                 let item = RecurringMoney(title: record.title, kind: record.kind, amount: record.amount, currency: record.currency,
                                           cadence: record.cadence, start: record.start, category: record.categoryID.flatMap { categories[$0] })
+                item.every = record.every ?? 1
                 item.lastCharged = record.lastCharged
                 item.isActive = record.isActive
                 context.insert(item)

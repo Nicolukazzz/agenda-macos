@@ -51,6 +51,7 @@ enum PreviewData {
             ("Cena", .expense, 120_000, .cop, "pareja", -3), ("Peluquería", .expense, 25_000, .cop, "belleza", -2),
             ("Almuerzo", .expense, 18_000, .cop, "comida", -1), ("Freelance logo", .income, 150, .usd, "freelance", -1),
             ("Café", .expense, 7_500, .cop, "comida", 0), ("Uber", .expense, 14_000, .cop, "transporte", 0),
+            ("Peluquería", .expense, 25_000, .cop, "belleza", -63), ("Peluquería", .expense, 25_000, .cop, "belleza", -124),
         ]
         for (title, kind, amount, currency, tag, offset) in money {
             context.insert(MoneyEntry(title: title, kind: kind, amount: amount, currency: currency, copPerUSD: 4_000,
@@ -181,4 +182,10 @@ enum PreviewData {
         .environment(state)
         .modelContainer(PreviewData.container)
         .frame(width: 1200, height: 900)
+}
+
+#Preview("Money form") {
+    MoneyEntryForm()
+        .environment(AppState())
+        .modelContainer(PreviewData.container)
 }

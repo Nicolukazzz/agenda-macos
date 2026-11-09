@@ -117,12 +117,14 @@ public struct AgendaBackup: Codable, Equatable, Sendable {
         public var amount: Decimal
         public var currency: Currency
         public var cadence: Cadence
+        /// Nil in backups from before "every N"; means 1.
+        public var every: Int?
         public var start: Date
         public var lastCharged: Date?
         public var isActive: Bool
         public var categoryID: String?
-        public init(id: String, title: String, kind: MoneyKind, amount: Decimal, currency: Currency, cadence: Cadence, start: Date, lastCharged: Date?, isActive: Bool, categoryID: String?) {
-            self.id = id; self.title = title; self.kind = kind; self.amount = amount; self.currency = currency; self.cadence = cadence
+        public init(id: String, title: String, kind: MoneyKind, amount: Decimal, currency: Currency, cadence: Cadence, every: Int? = nil, start: Date, lastCharged: Date?, isActive: Bool, categoryID: String?) {
+            self.id = id; self.title = title; self.kind = kind; self.amount = amount; self.currency = currency; self.cadence = cadence; self.every = every
             self.start = start; self.lastCharged = lastCharged; self.isActive = isActive; self.categoryID = categoryID
         }
     }

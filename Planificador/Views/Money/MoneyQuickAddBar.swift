@@ -2,17 +2,14 @@ import AgendaCore
 import SwiftData
 import SwiftUI
 
-/// Glass bar to log money in one line: `Peluquería 25k #belleza`, `Claude 20 usd`, `+2m sueldo`.
-/// Below it, Expense/Income and category chips for when typing a `#tag` is slower than clicking.
+/// Glass bar to log money in one line, for those who like typing: `Peluquería 25k #belleza`,
+/// `Claude 20 usd`, `+2m sueldo`. The big "Add Expense" form is the no-syntax way.
 struct MoneyQuickAddBar: View {
     @Environment(\.modelContext) private var context
-    @Environment(AppState.self) private var appState
     @AppStorage(MoneySettings.rateKey) private var rate = MoneySettings.defaultRate
     let categories: [MoneyCategory]
 
     @State private var text = ""
-    @State private var manualKind = MoneyKind.expense
-    @State private var manualCategory: MoneyCategory?
     @FocusState private var focused: Bool
 
     private var parsed: MoneyQuickAddResult {
@@ -23,14 +20,12 @@ struct MoneyQuickAddBar: View {
         parsed.tag.flatMap { tag in categories.first { $0.tag == tag } }
     }
 
-    /// `+` or an income `#tag` decide; otherwise the segmented control does.
+    /// `+` or an income `#tag` make it income.
     private var kind: MoneyKind {
-        parsed.isIncome ? .income : (taggedCategory?.kind ?? manualKind)
+        parsed.isIncome ? .income : (taggedCategory?.kind ?? .expense)
     }
 
-    private var category: MoneyCategory? {
-        taggedCategory ?? (manualCategory?.kind == kind ? manualCategory : nil)
-    }
+    private var category: MoneyCategory? { taggedCategory }
 
     private var currency: Currency { parsed.currency ?? .cop }
 
@@ -38,42 +33,25 @@ struct MoneyQuickAddBar: View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
             HStack(spacing: Theme.Space.m) {
                 Image(systemName: kind == .income ? "plus.circle.fill" : "minus.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 22))
                     .foregroundStyle(kind == .income ? AnyShapeStyle(Theme.Palette.success) : AnyShapeStyle(.tint))
                     .contentTransition(.symbolEffect(.replace))
-                TextField("Spent or earned — “Peluquería 25k #belleza”, “Claude 20 usd”, “+2m sueldo”", text: $text)
+                TextField("Or type it — “Peluquería 25k #belleza”, “+2m sueldo”", text: $text)
                     .textFieldStyle(.plain)
                     .focused($focused)
                     .onSubmit(add)
             }
-            .padding(.horizontal, Theme.Space.l)
-            .padding(.vertical, Theme.Space.m)
+            .font(Theme.Font.rowTitle)
+            .padding(.horizontal, Theme.Space.l + 2)
+            .padding(.vertical, Theme.Space.m + 3)
             .glassEffect(.regular.interactive(), in: .capsule)
 
             if !text.trimmingCharacters(in: .whitespaces).isEmpty {
                 preview.padding(.leading, Theme.Space.l).transition(.opacity)
             }
-
-            HStack(spacing: Theme.Space.m) {
-                Picker("Type", selection: Binding(get: { kind }, set: { manualKind = $0 })) {
-                    ForEach(MoneyKind.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .fixedSize()
-                ChipRow {
-                    ForEach(categories.filter { $0.kind == kind }) { item in
-                        Chip(title: "\(item.emoji) \(item.name)", colorHex: item.colorHex, isSelected: category === item, showsDot: false) {
-                            manualCategory = manualCategory === item ? nil : item
-                        }
-                    }
-                }
-            }
         }
         .animation(Theme.Motion.snappy, value: text.isEmpty)
         .animation(Theme.Motion.snappy, value: kind)
-        .onAppear(perform: takeCommand)
-        .onChange(of: appState.pendingCommand) { takeCommand() }
     }
 
     private var preview: some View {
@@ -114,12 +92,5 @@ struct MoneyQuickAddBar: View {
         withAnimation(Theme.Motion.snappy) { context.insert(entry) }
         try? context.save()
         text = ""
-        manualCategory = nil
-    }
-
-    private func takeCommand() {
-        guard appState.pendingCommand == .newMoneyEntry else { return }
-        appState.pendingCommand = nil
-        focused = true
     }
 }

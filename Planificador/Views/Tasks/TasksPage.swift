@@ -9,9 +9,11 @@ struct TasksPage: View {
     @State private var filter: Area?
     @State private var showCompleted = false
     @State private var editing: TaskItem?
+    @State private var creating: BlockEditorTarget?
 
     var body: some View {
         PageContent {
+            BigButton(title: "New Task", systemImage: "plus.circle.fill") { creating = .newTask(area: filter) }
             QuickAddBar(areas: semester.sortedAreas, defaultArea: filter)
             CourseChips(selection: $filter, areas: semester.sortedAreas, noneTitle: "All")
             TaskListView(area: filter, showCompleted: showCompleted) { editing = $0 }
@@ -27,5 +29,6 @@ struct TasksPage: View {
             }
         }
         .sheet(item: $editing) { TaskEditorView(task: $0, semester: semester) }
+        .sheet(item: $creating) { BlockEditorView(target: $0, semester: semester) }
     }
 }

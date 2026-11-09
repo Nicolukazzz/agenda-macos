@@ -49,6 +49,7 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
+        .environment(\.sidebarRowSize, .large)
         .sheet(isPresented: $showingSemesterSettings) {
             SemesterSettingsView(semester: semester)
         }

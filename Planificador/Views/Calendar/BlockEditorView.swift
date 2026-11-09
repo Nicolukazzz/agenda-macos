@@ -14,6 +14,13 @@ enum BlockEditorTarget: Identifiable {
     case new(start: Date, end: Date, area: Area?, kind: NewItemKind)
     case existing(CalendarItem)
 
+    /// A new task due today, from the big "New Task" buttons.
+    static func newTask(area: Area? = nil) -> BlockEditorTarget {
+        let math = CalendarMath()
+        let start = math.date(.now, atMinutes: 23 * 60 + 59)
+        return .new(start: start, end: start, area: area, kind: .task)
+    }
+
     var id: String {
         switch self {
         case .new(let start, _, _, let kind): "new-\(kind.rawValue)-\(start.timeIntervalSinceReferenceDate)"

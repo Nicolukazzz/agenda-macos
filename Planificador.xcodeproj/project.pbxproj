@@ -48,7 +48,6 @@
 		37535AE330A184AF00F41788 /* Exceptions for "AgendaWidgets" folder in "AgendaWidgetsExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				AgendaWidgets.entitlements,
 				Info.plist,
 			);
 			target = 37535ACE30A184AF00F41788 /* AgendaWidgetsExtension */;
@@ -430,13 +429,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = AgendaWidgets/AgendaWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgendaWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Agenda;
-				CODE_SIGN_ENTITLEMENTS = AgendaWidgets/AgendaWidgets.entitlements;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -468,13 +467,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = AgendaWidgets/AgendaWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AgendaWidgets/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Agenda;
-				CODE_SIGN_ENTITLEMENTS = AgendaWidgets/AgendaWidgets.entitlements;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

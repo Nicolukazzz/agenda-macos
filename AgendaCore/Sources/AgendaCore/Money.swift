@@ -285,17 +285,24 @@ public enum Cadence: String, Codable, CaseIterable, Sendable {
 public struct RecurringSchedule: Equatable, Sendable {
     public var start: Date
     public var cadence: Cadence
+    /// Every `every` weeks / months / years (2 = every other month).
+    public var every: Int
 
-    public init(start: Date, cadence: Cadence) {
+    public init(start: Date, cadence: Cadence, every: Int = 1) {
         self.start = start
         self.cadence = cadence
+        self.every = max(1, every)
     }
 
+    /// Average charges per month, for a fixed monthly cost.
+    public var perMonth: Decimal { cadence.perMonth / Decimal(every) }
+
     public func occurrence(_ index: Int, calendar: Calendar) -> Date? {
+        let step = index * every
         switch cadence {
-        case .weekly: calendar.date(byAdding: .day, value: 7 * index, to: start)
-        case .monthly: calendar.date(byAdding: .month, value: index, to: start)
-        case .yearly: calendar.date(byAdding: .year, value: index, to: start)
+        case .weekly: return calendar.date(byAdding: .day, value: 7 * step, to: start)
+        case .monthly: return calendar.date(byAdding: .month, value: step, to: start)
+        case .yearly: return calendar.date(byAdding: .year, value: step, to: start)
         }
     }
 
@@ -436,5 +443,79 @@ public enum MoneyShortcuts {
         return counts.values.filter { $0.count >= 2 }
             .sorted { $0.count != $1.count ? $0.count > $1.count : $0.order < $1.order }
             .prefix(limit).map(\.item)
+    }
+}
+
+// MARK: - Spotting habits
+
+/// "You've logged Peluquería about every 2 months — make it recurring?"
+public struct RecurringSuggestion: Equatable, Sendable {
+    /// Normalized title, the key used to dismiss a suggestion.
+    public var key: String
+    public var title: String
+    public var cadence: Cadence
+    public var every: Int
+    /// Most recent amount and currency.
+    public var amount: Decimal
+    public var currency: Currency
+    public var kind: MoneyKind
+    public var categoryTag: String?
+    public var occurrences: Int
+    /// Next expected date, used as the schedule start.
+    public var next: Date
+
+    public init(key: String, title: String, cadence: Cadence, every: Int, amount: Decimal, currency: Currency, kind: MoneyKind,
+                categoryTag: String?, occurrences: Int, next: Date) {
+        self.key = key; self.title = title; self.cadence = cadence; self.every = every; self.amount = amount; self.currency = currency
+        self.kind = kind; self.categoryTag = categoryTag; self.occurrences = occurrences; self.next = next
+    }
+}
+
+public enum RecurringDetector {
+    public struct Item: Sendable {
+        public var title: String
+        public var date: Date
+        public var amount: Decimal
+        public var currency: Currency
+        public var kind: MoneyKind
+        public var categoryTag: String?
+        public init(title: String, date: Date, amount: Decimal, currency: Currency, kind: MoneyKind, categoryTag: String?) {
+            self.title = title; self.date = date; self.amount = amount; self.currency = currency; self.kind = kind; self.categoryTag = categoryTag
+        }
+    }
+
+    /// Entries with the same title, logged at least 3 times on different days, at steady gaps
+    /// (each gap within 25% of the typical one) that match weeks, months or a year. Stale habits
+    /// (last one more than two gaps ago) and `excluded` titles are skipped. Most frequent first.
+    public static func suggestions(from items: [Item], excluding excluded: Set<String>, now: Date, calendar: Calendar) -> [RecurringSuggestion] {
+        let groups = Dictionary(grouping: items) { TagSuggester.normalize($0.title) }
+        var found: [RecurringSuggestion] = []
+        for (key, group) in groups where !key.isEmpty && !excluded.contains(key) {
+            // One per day: two coffees on Monday are not a pattern.
+            var seen = Set<Date>()
+            let sorted = group.sorted { $0.date < $1.date }.filter { seen.insert(calendar.startOfDay(for: $0.date)).inserted }
+            guard sorted.count >= 3, let last = sorted.last else { continue }
+            let gaps = zip(sorted, sorted.dropFirst()).map {
+                Double(calendar.dateComponents([.day], from: calendar.startOfDay(for: $0.date), to: calendar.startOfDay(for: $1.date)).day ?? 0)
+            }
+            let typical = gaps.sorted()[gaps.count / 2]
+            guard typical >= 5, gaps.allSatisfy({ abs($0 - typical) <= max(2, typical * 0.25) }),
+                  let (cadence, every) = cadence(forDays: typical) else { continue }
+            let sinceLast = Double(calendar.dateComponents([.day], from: last.date, to: now).day ?? 0)
+            guard sinceLast <= typical * 2 else { continue }
+            let schedule = RecurringSchedule(start: last.date, cadence: cadence, every: every)
+            guard let next = schedule.next(after: last.date, calendar: calendar) else { continue }
+            found.append(RecurringSuggestion(key: key, title: last.title, cadence: cadence, every: every, amount: last.amount, currency: last.currency,
+                                             kind: last.kind, categoryTag: last.categoryTag, occurrences: sorted.count, next: next))
+        }
+        return found.sorted { $0.occurrences != $1.occurrences ? $0.occurrences > $1.occurrences : $0.title < $1.title }
+    }
+
+    /// 7 → weekly, 14 → every 2 weeks, 30 → monthly, 61 → every 2 months, 365 → yearly.
+    static func cadence(forDays days: Double) -> (Cadence, Int)? {
+        for weeks in 1...3 where abs(days - Double(7 * weeks)) <= Double(weeks) + 1 { return (.weekly, weeks) }
+        for months in 1...6 where abs(days - 30.44 * Double(months)) <= 4 * Double(months) { return (.monthly, months) }
+        if abs(days - 365) <= 20 { return (.yearly, 1) }
+        return nil
     }
 }

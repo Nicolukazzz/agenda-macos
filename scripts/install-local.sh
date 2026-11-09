@@ -14,7 +14,8 @@ xcodebuild -project Planificador.xcodeproj -scheme Planificador -configuration R
 [[ -d "$PRODUCT" ]] || { echo "Build product not found: $PRODUCT"; exit 1; }
 
 osascript -e 'tell application id "com.nicolas.agenda" to quit' 2>/dev/null || true
-sleep 1
+# Wait for it to really exit; otherwise `open` below just re-activates the old process.
+for _ in {1..20}; do pgrep -qf "/Applications/Agenda.app/Contents/MacOS/Agenda" || break; sleep 0.5; done
 rm -rf "/Applications/Agenda.app"
 ditto "$PRODUCT" "/Applications/Agenda.app"
 rm -rf "$PRODUCT"

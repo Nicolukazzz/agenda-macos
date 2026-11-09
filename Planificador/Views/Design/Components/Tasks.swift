@@ -57,7 +57,7 @@ struct TaskRow: View {
 
     var body: some View {
         CardRow {
-            CheckCircle(isOn: task.isDone, colorHex: task.displayColorHex, size: 17) { task.toggleDone() }
+            CheckCircle(isOn: task.isDone, colorHex: task.displayColorHex, size: 22) { task.toggleDone() }
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 HStack(spacing: Theme.Space.xs) {
                     PriorityMark(priority: task.priority)
@@ -115,14 +115,15 @@ struct QuickAddBar: View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
             HStack(spacing: Theme.Space.m) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 18))
+                    .font(.system(size: 22))
                     .foregroundStyle(.tint)
                 TagCompletionField(
                     placeholder: "Add a task — “Lab report #so friday 6pm !”",
                     text: $text, areas: areas, style: .plain, autofocus: focusOnAppear, onSubmit: add)
             }
-            .padding(.horizontal, Theme.Space.l)
-            .padding(.vertical, Theme.Space.m)
+            .font(Theme.Font.rowTitle)
+            .padding(.horizontal, Theme.Space.l + 2)
+            .padding(.vertical, Theme.Space.m + 3)
             .glassEffect(.regular.interactive(), in: .capsule)
 
             if !text.trimmingCharacters(in: .whitespaces).isEmpty {

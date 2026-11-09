@@ -18,6 +18,7 @@ struct SectionHeader<Accessory: View>: View {
             accessory
         }
         .padding(.horizontal, Theme.Space.xs)
+        .padding(.top, Theme.Space.xs)
     }
 }
 
@@ -47,17 +48,18 @@ struct CardRow<Content: View>: View {
         HStack(alignment: .center, spacing: Theme.Space.m) {
             if let icon {
                 Image(systemName: icon)
-                    .font(.system(size: 14, weight: .medium))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(iconColor)
                     .frame(width: Theme.Size.rowIcon)
                     .accessibilityHidden(true)
             }
             HStack(spacing: Theme.Space.s) { content }
+                .font(Theme.Font.rowTitle)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, Theme.Space.m + 2)
+        .padding(.horizontal, Theme.Space.l)
         .padding(.vertical, Theme.Space.s + 2)
-        .frame(minHeight: 44)
+        .frame(minHeight: Theme.Size.rowHeight)
     }
 }
 
@@ -103,5 +105,28 @@ struct CardToggle: View {
         Text(title)
         Spacer()
         Toggle(title, isOn: $isOn).toggleStyle(.switch).labelsHidden()
+    }
+}
+
+/// Large, full-width action in the iPhone style: the obvious thing to click on a page.
+struct BigButton: View {
+    let title: String
+    let systemImage: String
+    var tint: Color = .accentColor
+    var prominent = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(Theme.Font.bigButton)
+                .frame(maxWidth: .infinity, minHeight: Theme.Size.bigButtonHeight)
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(tint))
+        .background(prominent ? AnyShapeStyle(tint.gradient) : AnyShapeStyle(tint.opacity(0.14)), in: Capsule())
+        .glassEffect(.regular.interactive(), in: .capsule)
+        .shadow(color: prominent ? tint.opacity(0.25) : .clear, radius: 8, y: 3)
     }
 }

@@ -21,33 +21,39 @@ enum Theme {
     enum Radius {
         static let chip: CGFloat = 6
         static let control: CGFloat = 8
-        static let card: CGFloat = 12
+        static let card: CGFloat = 16
         static let panel: CGFloat = 18
     }
 
     enum Size {
-        static let rowIcon: CGFloat = 20
+        static let rowIcon: CGFloat = 26
         /// Smallest clickable area for small controls, even when they draw smaller.
         static let minHitTarget: CGFloat = 24
         /// Leading inset of row separators: row padding + icon + spacing.
-        static let rowInset: CGFloat = 48
+        static let rowInset: CGFloat = 58
         static let dot: CGFloat = 8
         static let badge: CGFloat = 40
         static let dayCircle: CGFloat = 30
         static let sheetWidth: CGFloat = 540
-        static let contentMaxWidth: CGFloat = 720
+        static let contentMaxWidth: CGFloat = 760
+        /// iPhone-sized rows: easy to hit with a trackpad from across the desk.
+        static let rowHeight: CGFloat = 54
+        static let bigButtonHeight: CGFloat = 52
         static let peekWidth: CGFloat = 280
     }
 
     enum Font {
-        static let pageTitle = SwiftUI.Font.system(.title2, design: .rounded).weight(.semibold)
+        static let pageTitle = SwiftUI.Font.system(.largeTitle, design: .rounded).weight(.bold)
         static let editorTitle = SwiftUI.Font.system(.title2, design: .rounded).weight(.semibold)
-        static let sectionTitle = SwiftUI.Font.system(.headline, design: .rounded)
+        static let sectionTitle = SwiftUI.Font.system(size: 17, weight: .semibold, design: .rounded)
         static let eyebrow = SwiftUI.Font.caption.weight(.semibold)
         static let body = SwiftUI.Font.body
-        static let rowTitle = SwiftUI.Font.body
-        static let rowDetail = SwiftUI.Font.callout
-        static let caption = SwiftUI.Font.caption
+        static let rowTitle = SwiftUI.Font.system(size: 15)
+        static let rowDetail = SwiftUI.Font.system(size: 13)
+        static let caption = SwiftUI.Font.system(size: 12)
+        /// Hero numbers (month spent) and big buttons.
+        static let hero = SwiftUI.Font.system(size: 44, weight: .bold, design: .rounded)
+        static let bigButton = SwiftUI.Font.system(size: 16, weight: .semibold, design: .rounded)
         static let chip = SwiftUI.Font.system(size: 11, weight: .medium)
         static let chipTime = SwiftUI.Font.system(size: 11, weight: .regular).monospacedDigit()
         static let dayNumber = SwiftUI.Font.system(size: 13, weight: .semibold, design: .rounded).monospacedDigit()

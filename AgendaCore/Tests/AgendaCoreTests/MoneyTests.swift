@@ -160,3 +160,50 @@ struct MoneySnapshotTests {
         #expect(try MoneySnapshot.decode(snapshot.encoded()) == snapshot)
     }
 }
+
+struct RecurringDetectorTests {
+    private func item(_ title: String, _ date: Date, _ amount: Decimal = 25_000) -> RecurringDetector.Item {
+        .init(title: title, date: date, amount: amount, currency: .cop, kind: .expense, categoryTag: "belleza")
+    }
+    private let now = day(2026, 11, 8, 10)
+
+    @Test func everyTwoMonths() {
+        let items = [item("Peluquería", day(2026, 5, 3)), item("peluqueria", day(2026, 7, 4)), item("Peluquería", day(2026, 9, 2), 28_000)]
+        let found = RecurringDetector.suggestions(from: items, excluding: [], now: now, calendar: bogota)
+        #expect(found.count == 1)
+        #expect(found.first?.cadence == .monthly)
+        #expect(found.first?.every == 2)
+        #expect(found.first?.amount == 28_000)
+        #expect(found.first?.next == day(2026, 11, 2))
+    }
+
+    @Test func weeklyAndBiweekly() {
+        let weekly = (0..<4).map { item("Fútbol", day(2026, 10, 11 + 7 * $0)) }
+        #expect(RecurringDetector.suggestions(from: weekly, excluding: [], now: now, calendar: bogota).first?.cadence == .weekly)
+        let biweekly = (0..<3).map { item("Lavandería", day(2026, 9, 27 + 14 * $0)) }
+        let found = RecurringDetector.suggestions(from: biweekly, excluding: [], now: now, calendar: bogota).first
+        #expect(found?.cadence == .weekly)
+        #expect(found?.every == 2)
+    }
+
+    @Test func irregularStaleDismissedOrTooFewAreSkipped() {
+        let irregular = [item("Cine", day(2026, 8, 1)), item("Cine", day(2026, 8, 9)), item("Cine", day(2026, 10, 20))]
+        #expect(RecurringDetector.suggestions(from: irregular, excluding: [], now: now, calendar: bogota).isEmpty)
+        let stale = [item("Gym", day(2026, 1, 5)), item("Gym", day(2026, 2, 5)), item("Gym", day(2026, 3, 5))]
+        #expect(RecurringDetector.suggestions(from: stale, excluding: [], now: now, calendar: bogota).isEmpty)
+        let monthly = [item("Gym", day(2026, 8, 5)), item("Gym", day(2026, 9, 5)), item("Gym", day(2026, 10, 5))]
+        #expect(RecurringDetector.suggestions(from: monthly, excluding: ["gym"], now: now, calendar: bogota).isEmpty)
+        #expect(RecurringDetector.suggestions(from: Array(monthly.prefix(2)), excluding: [], now: now, calendar: bogota).isEmpty)
+    }
+
+    @Test func sameDayRepeatsCountOnce() {
+        let items = [item("Café", day(2026, 11, 2, 8)), item("Café", day(2026, 11, 2, 15)), item("Café", day(2026, 11, 3)), item("Café", day(2026, 11, 4))]
+        #expect(RecurringDetector.suggestions(from: items, excluding: [], now: now, calendar: bogota).isEmpty)
+    }
+
+    @Test func everyTwoMonthsSchedule() {
+        let schedule = RecurringSchedule(start: day(2026, 1, 15), cadence: .monthly, every: 2)
+        #expect(schedule.due(after: nil, through: day(2026, 6, 1), calendar: bogota) == [day(2026, 1, 15), day(2026, 3, 15), day(2026, 5, 15)])
+        #expect(schedule.perMonth == Decimal(1) / 2)
+    }
+}

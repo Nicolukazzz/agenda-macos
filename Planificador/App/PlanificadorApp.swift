@@ -110,6 +110,8 @@ enum StoreLoader {
     }
 
     static func load() -> Result<ModelContainer, Error> {
+        // Previews launch the app too; they must never open (or migrate) the real database.
+        if AppEnvironment.isPreview { return .success(PreviewData.container) }
         do {
             try FileManager.default.createDirectory(
                 at: storeURL.deletingLastPathComponent(), withIntermediateDirectories: true)

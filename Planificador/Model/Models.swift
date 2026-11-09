@@ -290,6 +290,8 @@ final class RecurringMoney {
     var amount: Decimal
     var currencyRaw: String
     var cadenceRaw: String
+    /// Every `every` weeks / months / years (2 = every other month).
+    var every: Int = 1
     /// First charge; later ones are counted from it.
     var start: Date
     /// Date of the newest charge already logged.
@@ -326,7 +328,7 @@ final class RecurringMoney {
         set { cadenceRaw = newValue.rawValue }
     }
 
-    var schedule: RecurringSchedule { RecurringSchedule(start: start, cadence: cadence) }
+    var schedule: RecurringSchedule { RecurringSchedule(start: start, cadence: cadence, every: every) }
 
     func nextCharge(after date: Date = .now) -> Date? {
         schedule.next(after: max(date, lastCharged ?? .distantPast), calendar: .autoupdatingCurrent)

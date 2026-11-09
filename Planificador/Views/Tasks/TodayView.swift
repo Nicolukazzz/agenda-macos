@@ -13,6 +13,8 @@ struct TodayView: View {
     @Environment(\.now) private var now
     @State private var editingTask: TaskItem?
     @State private var editingBlock: CalendarItem?
+    @State private var creating: BlockEditorTarget?
+    @State private var addingExpense = false
 
     private let math = CalendarMath()
 
@@ -53,6 +55,10 @@ struct TodayView: View {
 
     var body: some View {
         PageContent {
+            HStack(spacing: Theme.Space.m) {
+                BigButton(title: "New Task", systemImage: "plus.circle.fill") { creating = .newTask() }
+                BigButton(title: "Add Expense", systemImage: "banknote", tint: Theme.Palette.success, prominent: false) { addingExpense = true }
+            }
             QuickAddBar(areas: semester.sortedAreas)
 
             itemSection(
@@ -82,6 +88,8 @@ struct TodayView: View {
         .navigationSubtitle("Semester \(semester.name)")
         .sheet(item: $editingTask) { TaskEditorView(task: $0, semester: semester) }
         .sheet(item: $editingBlock) { BlockEditorView(target: .existing($0), semester: semester) }
+        .sheet(item: $creating) { BlockEditorView(target: $0, semester: semester) }
+        .sheet(isPresented: $addingExpense) { MoneyEntryForm() }
     }
 
     // MARK: Money

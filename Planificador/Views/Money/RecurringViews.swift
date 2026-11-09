@@ -18,7 +18,7 @@ struct RecurringCard: View {
 
     private func monthly(_ kind: MoneyKind) -> Decimal {
         active.filter { $0.kind == kind }.reduce(0) { total, item in
-            total + Money.convert(item.amount * item.cadence.perMonth, from: item.currency, to: display, copPerUSD: MoneyService.currentRate)
+            total + Money.convert(item.amount * item.schedule.perMonth, from: item.currency, to: display, copPerUSD: MoneyService.currentRate)
         }
     }
 
@@ -68,7 +68,7 @@ struct RecurringCard: View {
     private func row(_ item: RecurringMoney) -> some View {
         Button { editing = item } label: {
             HStack(spacing: Theme.Space.m) {
-                CategoryIcon(emoji: item.category?.emoji ?? "🔁", colorHex: item.category?.colorHex ?? Theme.Palette.noAreaHex)
+                CategoryIcon(emoji: item.category?.emoji ?? "🔁", colorHex: item.category?.colorHex ?? Theme.Palette.noAreaHex, size: 38)
                 VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                     Text(item.title).lineLimit(1)
                     Text(subtitle(item)).font(Theme.Font.caption).foregroundStyle(.secondary)
@@ -78,30 +78,22 @@ struct RecurringCard: View {
                     .monospacedDigit()
                     .foregroundStyle(item.kind == .income ? Theme.Palette.success : .primary)
             }
+            .font(Theme.Font.rowTitle)
             .opacity(item.isActive ? 1 : 0.5)
-            .padding(.horizontal, Theme.Space.m + 2)
+            .padding(.horizontal, Theme.Space.l)
             .padding(.vertical, Theme.Space.s)
-            .frame(minHeight: 44)
+            .frame(minHeight: 60)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
 
     private func subtitle(_ item: RecurringMoney) -> String {
-        let cadence = item.cadence.title
+        let described = Cadence.describe(item.cadence, every: item.every)
+        let cadence = described.prefix(1).uppercased() + described.dropFirst()
         guard item.isActive else { return "\(cadence) · paused" }
         guard let next = item.nextCharge(after: now) else { return cadence }
         return "\(cadence) · next \(next.agenda(.dateTime.day().month()))"
-    }
-}
-
-extension Cadence {
-    var title: String {
-        switch self {
-        case .weekly: "Weekly"
-        case .monthly: "Monthly"
-        case .yearly: "Yearly"
-        }
     }
 }
 
@@ -117,28 +109,32 @@ struct RecurringEditor: View {
     @State private var amount: Decimal
     @State private var currency: Currency
     @State private var cadence: Cadence
+    @State private var every: Int
     @State private var start: Date
     @State private var category: MoneyCategory?
     @State private var isActive: Bool
     @State private var confirmingDelete = false
 
-    init(item: RecurringMoney?, categories: [MoneyCategory]) {
+    /// `suggestion` prefills a new item from a habit Agenda spotted.
+    init(item: RecurringMoney?, categories: [MoneyCategory], suggestion: RecurringSuggestion? = nil) {
         self.item = item
         self.categories = categories
-        _title = State(initialValue: item?.title ?? "")
-        _kind = State(initialValue: item?.kind ?? .expense)
-        _amount = State(initialValue: item?.amount ?? 0)
-        _currency = State(initialValue: item?.currency ?? .cop)
-        _cadence = State(initialValue: item?.cadence ?? .monthly)
-        _start = State(initialValue: item?.start ?? .now)
-        _category = State(initialValue: item?.category ?? categories.first { $0.tag == "suscripciones" })
+        _title = State(initialValue: item?.title ?? suggestion?.title ?? "")
+        _kind = State(initialValue: item?.kind ?? suggestion?.kind ?? .expense)
+        _amount = State(initialValue: item?.amount ?? suggestion?.amount ?? 0)
+        _currency = State(initialValue: item?.currency ?? suggestion?.currency ?? .cop)
+        _cadence = State(initialValue: item?.cadence ?? suggestion?.cadence ?? .monthly)
+        _every = State(initialValue: item?.every ?? suggestion?.every ?? 1)
+        _start = State(initialValue: item?.start ?? suggestion?.next ?? .now)
+        let suggested = suggestion?.categoryTag.flatMap { tag in categories.first { $0.tag == tag } }
+        _category = State(initialValue: item?.category ?? suggested ?? (suggestion == nil ? categories.first { $0.tag == "suscripciones" } : nil))
         _isActive = State(initialValue: item?.isActive ?? true)
     }
 
     private var pastCharges: Int {
         guard item == nil else { return 0 }
         let calendar = Calendar.autoupdatingCurrent
-        return RecurringSchedule(start: start, cadence: cadence)
+        return RecurringSchedule(start: start, cadence: cadence, every: every)
             .due(after: nil, through: RecurringSchedule.endOfDay(.now, calendar: calendar), calendar: calendar).count
     }
 
@@ -174,9 +170,10 @@ struct RecurringEditor: View {
                 CardDivider()
                 CardRow(icon: "repeat") {
                     Text("Every")
+                    Stepper("\(every)", value: $every, in: 1...12).monospacedDigit().fixedSize()
                     Spacer()
                     Picker("Every", selection: $cadence) {
-                        ForEach(Cadence.allCases, id: \.self) { Text($0.title).tag($0) }
+                        ForEach(Cadence.allCases, id: \.self) { Text($0.unit(plural: every > 1)).tag($0) }
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
@@ -233,12 +230,13 @@ struct RecurringEditor: View {
         let target = item ?? RecurringMoney(title: "", kind: kind, amount: amount, currency: currency, cadence: cadence, start: start, category: category)
         if item == nil { context.insert(target) }
         let resuming = item != nil && !target.isActive && isActive
-        let scheduleChanged = item != nil && (target.start != start || target.cadence != cadence)
+        let scheduleChanged = item != nil && (target.start != start || target.cadence != cadence || target.every != every)
         target.title = title.trimmingCharacters(in: .whitespaces)
         target.kind = kind
         target.amount = amount
         target.currency = currency
         target.cadence = cadence
+        target.every = every
         target.start = start
         target.category = category
         target.isActive = isActive
