@@ -54,7 +54,7 @@ import SwiftUI
 
             SectionHeader("Pickers")
             HStack(alignment: .top, spacing: Theme.Space.xl) {
-                MonthPicker(date: $date)
+                AgendaCalendar(date: $date)
                 TimeList(time: $date, step: 15) {}.frame(height: 220)
             }
 

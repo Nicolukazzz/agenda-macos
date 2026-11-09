@@ -168,7 +168,7 @@ struct MoneyEntryForm: View {
                     date = math.add(days: -1, to: .now)
                 }
                 Spacer()
-                DatePicker("Day", selection: $date, displayedComponents: .date).labelsHidden()
+                DatePill(date: $date, showsIcon: false)
             }
             CardDivider()
             CardRow(icon: "repeat") { CardToggle(title: "Repeats", isOn: $repeats.animation(Theme.Motion.snappy)) }

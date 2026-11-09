@@ -11,6 +11,7 @@
 		37535AD430A184AF00F41788 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 37535AD330A184AF00F41788 /* SwiftUI.framework */; };
 		37535ADF30A184AF00F41788 /* AgendaWidgetsExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 37535ACF30A184AF00F41788 /* AgendaWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A6E1C0012F00000100000003 /* AgendaCore in Frameworks */ = {isa = PBXBuildFile; productRef = A6E1C0012F00000100000002 /* AgendaCore */; };
+		B7C2D0012F00000100000003 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = B7C2D0012F00000100000002 /* MijickCalendarView */; };
 		A6E1C0012F00000100000006 /* AgendaCore in Frameworks */ = {isa = PBXBuildFile; productRef = A6E1C0012F00000100000005 /* AgendaCore */; };
 /* End PBXBuildFile section */
 
@@ -75,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			files = (
 				A6E1C0012F00000100000003 /* AgendaCore in Frameworks */,
+				B7C2D0012F00000100000003 /* MijickCalendarView in Frameworks */,
 			);
 		};
 		37535ACC30A184AF00F41788 /* Frameworks */ = {
@@ -140,6 +142,7 @@
 			name = Planificador;
 			packageProductDependencies = (
 				A6E1C0012F00000100000002 /* AgendaCore */,
+				B7C2D0012F00000100000002 /* MijickCalendarView */,
 			);
 			productName = Planificador;
 			productReference = 371DD1FE30896070004D47AE /* Agenda.app */;
@@ -195,6 +198,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				A6E1C0012F00000100000001 /* XCLocalSwiftPackageReference "AgendaCore" */,
+				B7C2D0012F00000100000001 /* XCRemoteSwiftPackageReference "CalendarView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 371DD1FF30896070004D47AE /* Products */;
@@ -536,6 +540,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		B7C2D0012F00000100000001 /* XCRemoteSwiftPackageReference "CalendarView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Mijick/CalendarView.git";
+			requirement = {
+				kind = exactVersion;
+				version = 1.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		A6E1C0012F00000100000002 /* AgendaCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -544,6 +559,11 @@
 		A6E1C0012F00000100000005 /* AgendaCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AgendaCore;
+		};
+		B7C2D0012F00000100000002 /* MijickCalendarView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B7C2D0012F00000100000001 /* XCRemoteSwiftPackageReference "CalendarView" */;
+			productName = MijickCalendarView;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

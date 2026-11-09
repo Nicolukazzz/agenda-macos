@@ -1,8 +1,9 @@
 import AgendaCore
+import MijickCalendarView
 import SwiftUI
 
-// iPhone-style pickers for macOS: glass pills that open an iOS-like month calendar or a
-// scrolling time list, instead of the small stepper fields of `DatePicker`'s default style.
+// iPhone-style pickers for macOS: glass pills that open an iOS-like month calendar (MijickCalendarView)
+// or a scrolling time list, instead of the small stepper fields of `DatePicker`'s default style.
 
 /// "Wed, Oct 21" pill → popover with the app's month calendar and quick choices.
 struct DatePill: View {
@@ -30,7 +31,7 @@ struct DatePill: View {
                     quick("Tomorrow", math.add(days: 1, to: math.startOfDay(.now)))
                     quick("Next Week", math.add(days: 7, to: math.startOfWeek(containing: .now)))
                 }
-                MonthPicker(date: $date) { isOpen = false }
+                AgendaCalendar(date: $date) { isOpen = false }
             }
             .padding(Theme.Space.l)
         }
@@ -44,84 +45,93 @@ struct DatePill: View {
     }
 }
 
-/// iOS-style month calendar: Monday first, round day cells, selection in the accent color.
-struct MonthPicker: View {
+/// Month calendar from MijickCalendarView, styled like iOS: months scroll vertically, Monday first,
+/// round day cells, selection in the accent color, today tinted. Picking a day keeps the time of `date`.
+struct AgendaCalendar: View {
     @Binding var date: Date
     var onPick: () -> Void = {}
 
-    @State private var month = Date.now
     private let math = CalendarMath()
-    private static let cell: CGFloat = 34
 
     var body: some View {
-        VStack(spacing: Theme.Space.s) {
-            HStack {
-                Text(month.agenda(.dateTime.month(.wide).year()))
-                    .font(Theme.Font.sectionTitle)
-                    .contentTransition(.numericText())
-                Spacer()
-                ControlGroup {
-                    Button("Previous Month", systemImage: "chevron.left") { shift(-1) }
-                    Button("Next Month", systemImage: "chevron.right") { shift(1) }
-                }
-                .labelStyle(.iconOnly)
-                .fixedSize()
-            }
-            .padding(.horizontal, Theme.Space.xs)
-
-            HStack(spacing: 0) {
-                ForEach(Weekdays.order, id: \.self) { weekday in
-                    Text(Weekdays.initial(weekday))
-                        .font(Theme.Font.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .frame(width: Self.cell)
-                }
-            }
-
-            VStack(spacing: 2) {
-                ForEach(math.monthGrid(containing: month), id: \.first) { week in
-                    HStack(spacing: 0) {
-                        ForEach(week, id: \.self) { day in dayCell(day) }
-                    }
-                }
-            }
-        }
-        .frame(width: Self.cell * 7)
-        .onAppear { month = date }
-    }
-
-    private func dayCell(_ day: Date) -> some View {
-        let isSelected = math.isSameDay(day, date)
-        let isToday = math.isSameDay(day, .now)
-        let inMonth = math.isSameMonth(day, month)
-        return Button {
-            date = math.date(day, keepingTimeOf: date)
+        MCalendarView(selectedDate: Binding(get: { date }, set: { picked in
+            guard let picked else { return }
+            date = math.date(picked, keepingTimeOf: date)
             onPick()
-        } label: {
-            Text(day.agenda(.dateTime.day()))
-                .font(.system(size: 14, weight: isSelected || isToday ? .semibold : .regular, design: .rounded))
-                .monospacedDigit()
-                .frame(width: Self.cell - 4, height: Self.cell - 4)
-                .background {
-                    if isSelected { Circle().fill(.tint) }
-                    else if isToday { Circle().fill(.tint.opacity(0.15)) }
-                }
-                .foregroundStyle(
-                    isSelected ? AnyShapeStyle(.white)
-                        : isToday ? AnyShapeStyle(.tint)
-                        : inMonth ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
-                .frame(width: Self.cell, height: Self.cell)
-                .contentShape(Rectangle())
+        }), selectedRange: nil) {
+            $0.startMonth(math.add(months: -24, to: .now))
+                .endMonth(math.add(months: 36, to: .now))
+                .firstWeekday(.monday)
+                .locale(.agenda)
+                .scrollTo(date: date)
+                .monthLabelToDaysDistance(Theme.Space.s)
+                .monthsSpacing(Theme.Space.xl)
+                .daysVerticalSpacing(Theme.Space.xxs)
+                .monthLabel(AgendaMonthLabel.init)
+                .weekdaysView(AgendaWeekdays.init)
+                .dayView(AgendaDayView.init)
         }
-        .buttonStyle(.plain)
-        .hoverLift(scale: 1.08)
-        .accessibilityLabel(day.agenda(date: .complete, time: .omitted))
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .frame(width: 300, height: 330)
     }
+}
 
-    private func shift(_ months: Int) {
-        withAnimation(Theme.Motion.snappy) { month = math.add(months: months, to: month) }
+private struct AgendaMonthLabel: MonthLabel {
+    let month: Date
+
+    func createContent() -> AnyView {
+        Text(month.agenda(.dateTime.month(.wide).year()))
+            .font(Theme.Font.sectionTitle)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, Theme.Space.s)
+            .erased()
     }
+}
+
+private struct AgendaWeekdays: WeekdaysView {
+    func createWeekdayLabel(_ weekday: MWeekday) -> AnyWeekdayLabel { AgendaWeekdayLabel(weekday: weekday).erased() }
+}
+
+private struct AgendaWeekdayLabel: WeekdayLabel {
+    let weekday: MWeekday
+
+    func createContent() -> AnyView {
+        Text(getString(with: .veryShort))
+            .font(Theme.Font.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .erased()
+    }
+}
+
+private struct AgendaDayView: DayView {
+    let date: Date
+    let isCurrentMonth: Bool
+    let selectedDate: Binding<Date?>?
+    let selectedRange: Binding<MDateRange?>?
+
+    func createContent() -> AnyView {
+        let selected = isSelected()
+        let today = isToday()
+        return Text(getStringFromDay(format: "d"))
+            .font(.system(size: 14, weight: selected || today ? .semibold : .regular, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(selected ? AnyShapeStyle(.white) : today ? AnyShapeStyle(.tint) : AnyShapeStyle(.primary))
+            .frame(width: 34, height: 34)
+            .background {
+                if selected { Circle().fill(Color.accentColor.gradient) }
+                else if today { Circle().fill(.tint.opacity(0.15)) }
+            }
+            .animation(Theme.Motion.snappy, value: selected)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .hoverLift(scale: 1.1)
+            .accessibilityLabel(date.agenda(date: .complete, time: .omitted))
+            .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+            .erased()
+    }
+}
+
+private extension View {
+    func erased() -> AnyView { AnyView(self) }
 }
 
 /// "09:00" pill → popover with a scrolling list of times every `step` minutes, centered on the selection.
@@ -252,4 +262,9 @@ struct PillLabelStyle: LabelStyle {
             configuration.title
         }
     }
+}
+
+#Preview("Calendar") {
+    @Previewable @State var date = Date.now
+    AgendaCalendar(date: $date).padding()
 }

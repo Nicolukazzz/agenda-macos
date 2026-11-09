@@ -78,7 +78,7 @@ struct MoneyEntryEditor: View {
                 CardRow(icon: "calendar") {
                     Text("Date")
                     Spacer()
-                    DatePicker("Date", selection: $entry.date, displayedComponents: .date).labelsHidden()
+                    DatePill(date: $entry.date, showsIcon: false)
                 }
             }
             .animation(Theme.Motion.snappy, value: entry.currency)

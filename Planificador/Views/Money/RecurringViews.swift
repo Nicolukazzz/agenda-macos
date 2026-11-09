@@ -181,7 +181,7 @@ struct RecurringEditor: View {
                 CardRow(icon: "calendar") {
                     Text(item == nil ? "First charge" : "Charged from")
                     Spacer()
-                    DatePicker("First charge", selection: $start, displayedComponents: .date).labelsHidden()
+                    DatePill(date: $start, showsIcon: false)
                 }
                 if pastCharges > 0 {
                     CardNote(text: pastCharges == 1
