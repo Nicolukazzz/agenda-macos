@@ -20,6 +20,8 @@ struct MoneyEntryForm: View {
     @State private var repeats = false
     @State private var every = 1
     @State private var cadence = Cadence.monthly
+    /// Once the user picks a currency by hand, a remembered name no longer changes it.
+    @State private var currencyTouched = false
     @FocusState private var amountFocused: Bool
 
     private let math = CalendarMath()
@@ -66,13 +68,22 @@ struct MoneyEntryForm: View {
         }
         .onAppear { amountFocused = true }
         .onChange(of: kind) { if category?.kind != kind { category = nil } }
+        .onChange(of: title) { remember() }
+    }
+
+    /// A name logged before brings back its currency (Railway is always dollars) and its category.
+    private func remember() {
+        let key = TagSuggester.normalize(title)
+        guard !key.isEmpty, let last = history.first(where: { $0.kind == kind && TagSuggester.normalize($0.title) == key }) else { return }
+        if !currencyTouched { currency = last.currency }
+        if category == nil { category = last.category }
     }
 
     // MARK: Amount
 
     private var amountField: some View {
         VStack(spacing: Theme.Space.xs) {
-            Picker("Currency", selection: $currency) {
+            Picker("Currency", selection: Binding(get: { currency }, set: { currency = $0; currencyTouched = true })) {
                 Text("COP $").tag(Currency.cop)
                 Text("USD US$").tag(Currency.usd)
             }
@@ -91,7 +102,9 @@ struct MoneyEntryForm: View {
                 .foregroundStyle(amount == nil ? .tertiary : .secondary)
                 .contentTransition(.numericText())
                 .animation(Theme.Motion.snappy, value: amountText)
+            DollarHint(amount: amount, currency: $currency)
         }
+        .animation(Theme.Motion.snappy, value: amount.map { Currency.looksLikeDollars($0, in: currency) })
         .padding(.vertical, Theme.Space.m)
         .frame(maxWidth: .infinity)
         .background(Theme.Palette.cardFill, in: RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))

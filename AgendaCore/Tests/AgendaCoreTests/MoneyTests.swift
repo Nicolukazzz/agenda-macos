@@ -94,6 +94,14 @@ struct MoneyMathTests {
         #expect(Money.rounded(Decimal(string: "19047.619")!, for: .cop) == 19_048)
         #expect(Money.rounded(Decimal(string: "4.761")!, for: .usd) == Decimal(string: "4.76"))
     }
+
+    @Test func tinyPesoAmountsLookLikeDollars() {
+        #expect(Currency.looksLikeDollars(5, in: .cop))
+        #expect(Currency.looksLikeDollars(Decimal(string: "19.99")!, in: .cop))
+        #expect(!Currency.looksLikeDollars(5, in: .usd))
+        #expect(!Currency.looksLikeDollars(1_000, in: .cop))
+        #expect(!Currency.looksLikeDollars(0, in: .cop))
+    }
 }
 
 struct RecurringTests {

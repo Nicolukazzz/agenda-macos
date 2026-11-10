@@ -114,6 +114,7 @@ struct RecurringEditor: View {
     @State private var category: MoneyCategory?
     @State private var isActive: Bool
     @State private var confirmingDelete = false
+    @State private var askingAboutPast = false
 
     /// `suggestion` prefills a new item from a habit Agenda spotted.
     init(item: RecurringMoney?, categories: [MoneyCategory], suggestion: RecurringSuggestion? = nil) {
@@ -177,6 +178,11 @@ struct RecurringEditor: View {
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
+                if Currency.looksLikeDollars(amount, in: currency) {
+                    DollarHint(amount: amount, currency: $currency)
+                        .padding(.leading, Theme.Size.rowInset)
+                        .padding(.bottom, Theme.Space.s)
+                }
                 CardDivider()
                 CardRow(icon: "repeat") {
                     Text("Every")
@@ -211,6 +217,7 @@ struct RecurringEditor: View {
                 }
             }
             .animation(Theme.Motion.snappy, value: pastCharges)
+            .animation(Theme.Motion.snappy, value: Currency.looksLikeDollars(amount, in: currency))
         } footer: {
             ActionBar(
                 destructiveTitle: item == nil ? nil : "Delete",
@@ -218,7 +225,7 @@ struct RecurringEditor: View {
                 onCancel: { dismiss() },
                 primaryTitle: item == nil ? "Add" : "Done",
                 primaryDisabled: title.trimmingCharacters(in: .whitespaces).isEmpty || amount <= 0,
-                onPrimary: save)
+                onPrimary: requestSave)
         }
         .onChange(of: kind) { if category?.kind != kind { category = nil } }
         .confirmationDialog("Delete “\(title)”?", isPresented: $confirmingDelete) {
@@ -230,13 +237,33 @@ struct RecurringEditor: View {
         } message: {
             Text("Charges it already logged stay in your history.")
         }
+        .confirmationDialog("Change the charges already logged too?", isPresented: $askingAboutPast) {
+            Button("Fix All \(loggedCount) Charges") { save(fixingPast: true) }
+            Button("Only From Now On") { save(fixingPast: false) }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Fix them if the amount was a typo. Keep them if the price really changed.")
+        }
     }
 
-    private func save() {
+    private var loggedCount: Int { item?.entries.count ?? 0 }
+
+    /// A new price may be a typo fix or a real price change; only the user knows, so ask.
+    /// A new currency is always a fix (a subscription never switches currency), so it needs no question.
+    private func requestSave() {
+        if let item, loggedCount > 0, item.amount != amount, item.currency == currency {
+            askingAboutPast = true
+        } else {
+            save(fixingPast: true)
+        }
+    }
+
+    private func save(fixingPast: Bool) {
         let target = item ?? RecurringMoney(title: "", kind: kind, amount: amount, currency: currency, cadence: cadence, start: start, category: category)
         if item == nil { context.insert(target) }
         let resuming = item != nil && !target.isActive && isActive
         let scheduleChanged = item != nil && (target.start != start || target.cadence != cadence || target.every != every)
+        let amountOrCurrencyChanged = target.amount != amount || target.currency != currency
         target.title = title.trimmingCharacters(in: .whitespaces)
         target.kind = kind
         target.amount = amount
@@ -246,6 +273,17 @@ struct RecurringEditor: View {
         target.start = start
         target.category = category
         target.isActive = isActive
+        // Charges already logged follow the item: name, type and category always; amount and currency when they were wrong.
+        for entry in target.entries {
+            entry.title = target.title
+            entry.kind = kind
+            entry.category = category
+            if amountOrCurrencyChanged && fixingPast {
+                entry.amount = amount
+                entry.currency = currency
+                if entry.copPerUSD <= 0 { entry.copPerUSD = MoneyService.currentRate }
+            }
+        }
         // Resuming or moving the schedule never back-fills missed charges.
         if resuming || scheduleChanged { target.lastCharged = max(target.lastCharged ?? .distantPast, .now) }
         target.chargeDue(copPerUSD: MoneyService.currentRate, in: context)

@@ -50,6 +50,11 @@ struct MoneyEntryEditor: View {
                     }
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                 }
+                if Currency.looksLikeDollars(entry.amount, in: entry.currency) {
+                    DollarHint(amount: entry.amount, currency: currency)
+                        .padding(.leading, Theme.Size.rowInset)
+                        .padding(.bottom, Theme.Space.s)
+                }
                 if entry.currency == .usd {
                     CardDivider()
                     CardRow(icon: "arrow.left.arrow.right") {

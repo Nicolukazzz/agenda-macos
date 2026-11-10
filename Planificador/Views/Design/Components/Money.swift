@@ -71,3 +71,29 @@ struct StatTile: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+/// "$ 5 pesos? Use dollars": shown under an amount that is too small to be pesos, with a one-click fix.
+struct DollarHint: View {
+    let amount: Decimal?
+    @Binding var currency: Currency
+
+    var body: some View {
+        if let amount, Currency.looksLikeDollars(amount, in: currency) {
+            Button {
+                withAnimation(Theme.Motion.snappy) { currency = .usd }
+            } label: {
+                Label("Only \(Currency.cop.format(amount)) pesos? Switch to \(Currency.usd.format(amount))",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .font(Theme.Font.caption.weight(.medium))
+                    .foregroundStyle(Theme.Palette.warning)
+                    .padding(.horizontal, Theme.Space.m)
+                    .padding(.vertical, Theme.Space.xs)
+                    .background(Theme.Palette.warning.opacity(0.14), in: Capsule())
+                    .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .hoverLift()
+            .transition(.opacity.combined(with: .scale(scale: 0.95)))
+        }
+    }
+}

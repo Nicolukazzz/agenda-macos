@@ -7,6 +7,11 @@ public enum Currency: String, Codable, CaseIterable, Sendable {
 
     /// Pesos are shown and rounded without cents.
     public var fractionDigits: Int { self == .cop ? 0 : 2 }
+
+    /// Under $ 1.000 pesos is almost always a dollar price typed with the wrong currency ("Railway 5").
+    public static func looksLikeDollars(_ amount: Decimal, in currency: Currency) -> Bool {
+        currency == .cop && amount > 0 && amount < 1_000
+    }
 }
 
 public enum MoneyKind: String, Codable, CaseIterable, Sendable {

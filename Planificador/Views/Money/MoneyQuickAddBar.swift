@@ -7,6 +7,7 @@ import SwiftUI
 struct MoneyQuickAddBar: View {
     @Environment(\.modelContext) private var context
     @AppStorage(MoneySettings.rateKey) private var rate = MoneySettings.defaultRate
+    @Query(sort: \MoneyEntry.date, order: .reverse) private var history: [MoneyEntry]
     let categories: [MoneyCategory]
 
     @State private var text = ""
@@ -27,7 +28,13 @@ struct MoneyQuickAddBar: View {
 
     private var category: MoneyCategory? { taggedCategory }
 
-    private var currency: Currency { parsed.currency ?? .cop }
+    /// The typed currency, else the one this name used last time ("Railway 5" stays dollars), else pesos.
+    private var currency: Currency {
+        if let typed = parsed.currency { return typed }
+        let key = TagSuggester.normalize(parsed.title)
+        guard !key.isEmpty else { return .cop }
+        return history.first { TagSuggester.normalize($0.title) == key }?.currency ?? .cop
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
@@ -65,6 +72,9 @@ struct MoneyQuickAddBar: View {
                     .font(Theme.Font.caption.weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(kind == .income ? Theme.Palette.success : .primary)
+                if Currency.looksLikeDollars(amount, in: currency) {
+                    Text("Pesos? Add “usd” for dollars").font(Theme.Font.caption).foregroundStyle(Theme.Palette.warning)
+                }
             } else {
                 Text("Add an amount").font(Theme.Font.caption).foregroundStyle(Theme.Palette.warning)
             }
