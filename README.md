@@ -13,7 +13,7 @@ Agenda is **fully offline**: no accounts, no sync, no network code. Everything s
 - **Notes** — Markdown files in `<Course>/Notas/`, with an edit / split / preview editor, autosave, live reload when another app edits a file, and conflict handling. Files outside `Notas/` open read-only.
 - **Files** — the course folder with Finder icons and Quick Look. Never moves, renames or deletes anything.
 - **Money** — log what you spend or earn in one line: `Peluquería 25k #belleza`, `Claude 20 usd ayer`, `+2m sueldo`. Pesos and dollars (each entry keeps the rate of its day), totals and balance per month, where it went by category, day by day, and the pace against last month. Subscriptions and salaries log themselves on their day.
-- **Menu bar and widgets** — a menu bar panel to log money from any app; desktop widgets with the month's spending and one-click buttons for what you log most.
+- **Widgets** — desktop widgets with the month's spending and one-click buttons for what you log most.
 - **Backups** — a daily JSON backup (last 14 kept), export/import, and guided restore if the database can't be opened.
 
 ## Requirements

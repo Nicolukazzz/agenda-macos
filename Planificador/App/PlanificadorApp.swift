@@ -25,18 +25,6 @@ struct PlanificadorApp: App {
         .windowToolbarStyle(.unified)
         .commands { AgendaCommands(appState: appState) }
 
-        // Log money from anywhere. Lives while Agenda runs.
-        MenuBarExtra {
-            if case .success(let container) = store {
-                MoneyMenuBarView()
-                    .environment(appState)
-                    .modelContainer(container)
-            }
-        } label: {
-            Image(systemName: "banknote")
-        }
-        .menuBarExtraStyle(.window)
-
         Settings {
             if case .success(let container) = store {
                 AgendaSettingsView()
