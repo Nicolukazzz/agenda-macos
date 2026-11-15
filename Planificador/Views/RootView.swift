@@ -29,8 +29,11 @@ struct RootView: View {
                     ClassAlerts.refresh(context, semester: semester)
                 }
                 .onOpenURL { url in
+                    guard url.scheme == "agenda" else { return }
+                    // The global "new task" hotkey: the same sheet as ⌘N, on whatever page is showing.
+                    if url.host() == "task" { appState.pendingCommand = .newTask; return }
                     // Widget buttons: repeat a frequent entry, or open Money ready to type.
-                    guard url.scheme == "agenda", url.host() == "money" else { return }
+                    guard url.host() == "money" else { return }
                     appState.selection = .money
                     if !MoneyService.handle(url, context: context) { appState.pendingCommand = .newMoneyEntry }
                 }

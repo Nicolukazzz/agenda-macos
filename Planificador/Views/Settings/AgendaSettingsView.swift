@@ -81,6 +81,18 @@ struct AgendaSettingsView: View {
             }
 
             VStack(alignment: .leading, spacing: Theme.Space.s) {
+                SectionHeader("Tasks")
+                Card {
+                    CardRow(icon: "keyboard") {
+                        Text("New task from anywhere")
+                        Spacer()
+                        KeyboardShortcuts.Recorder(for: .newTask)
+                    }
+                    CardNote(text: "Press it in any app to open Agenda's one-line New Task. Pick a combination nothing else uses, like ⌃⌥T.")
+                }
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
                 SectionHeader("Money")
                 Card {
                     CardRow(icon: "dollarsign.arrow.circlepath") {
