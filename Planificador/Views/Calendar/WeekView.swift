@@ -345,7 +345,7 @@ private struct WeekBlockView: View {
         }
         .overlay(alignment: .bottom) { resizeHandle }
         .padding(.bottom, -resize)
-        .shadow(color: .black.opacity(drag == .zero ? 0 : 0.2), radius: 8, y: 4)
+        .shadow(color: .black.opacity(drag == .zero ? 0 : 0.2), radius: drag == .zero ? 0 : 8, y: drag == .zero ? 0 : 4)
         .offset(x: CGFloat(dayShift) * columnWidth, y: CGFloat(shiftedMinutes) * pointsPerMinute)
         .zIndex(drag == .zero ? 0 : 1)
         .hoverLift(scale: 1.01)

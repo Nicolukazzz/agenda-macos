@@ -1,6 +1,7 @@
 #!/bin/zsh
 # Build Agenda in Release and install it as /Applications/Agenda.app.
 # Ad-hoc signed and without hardened runtime: this is a personal, local-only app.
+# Built only for this Mac's processor and stripped of symbols, so the installed app stays small.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -9,7 +10,7 @@ cd "$(dirname "$0")/.."
 PRODUCT="build/Build/Products/Release/Agenda.app"
 xcodebuild -project Planificador.xcodeproj -scheme Planificador -configuration Release \
   -derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM="" \
-  ENABLE_HARDENED_RUNTIME=NO build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
+  ENABLE_HARDENED_RUNTIME=NO ONLY_ACTIVE_ARCH=YES DEPLOYMENT_POSTPROCESSING=YES build | grep -E "error:|BUILD (SUCCEEDED|FAILED)"
 
 [[ -d "$PRODUCT" ]] || { echo "Build product not found: $PRODUCT"; exit 1; }
 
