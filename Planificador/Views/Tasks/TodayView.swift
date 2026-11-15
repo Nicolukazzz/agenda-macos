@@ -8,7 +8,7 @@ struct TodayView: View {
 
     @Query private var blocks: [Block]
     @Query private var tasks: [TaskItem]
-    @Query(sort: \MoneyEntry.date, order: .reverse) private var money: [MoneyEntry]
+    @Query private var money: [MoneyEntry]
     @Environment(AppState.self) private var appState
     @Environment(\.now) private var now
     @State private var editingTask: TaskItem?
@@ -17,6 +17,13 @@ struct TodayView: View {
     @State private var addingExpense = false
 
     private let math = CalendarMath()
+
+    /// Only this month's money is loaded: Today shows nothing older.
+    init(semester: Semester) {
+        self.semester = semester
+        let monthStart = CalendarMath().startOfMonth(containing: .now)
+        _money = Query(filter: #Predicate<MoneyEntry> { $0.date >= monthStart }, sort: \.date, order: .reverse)
+    }
 
     private var todayItems: [CalendarItem] {
         let start = math.startOfDay(.now)
@@ -43,7 +50,9 @@ struct TodayView: View {
                     CardRow(icon: emptyIcon) { Text(emptyText).foregroundStyle(.secondary) }
                 }
                 // Today's "now" line sits before the first event still to come, unless one is happening.
-                let nowIndex = items.contains { $0.start <= now && $0.end > now } ? nil : (items.firstIndex { $0.start > now } ?? items.count)
+                // All-day events come first and never count as "happening now".
+                let timed = items.filter { !$0.isAllDay }
+                let nowIndex = timed.isEmpty || timed.contains { $0.start <= now && $0.end > now } ? nil : (items.firstIndex { !$0.isAllDay && $0.start > now } ?? items.count)
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                     if index == nowIndex { NowDivider(time: now) } else if index > 0 { CardDivider() }
                     EventRow(item: item) { editingBlock = $0 }

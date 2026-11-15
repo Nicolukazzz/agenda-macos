@@ -18,6 +18,8 @@ struct NoteEditorView: View {
     @AppStorage("noteEditorMode") private var mode: Mode = .split
     @State private var text: String
     @State private var savedText: String
+    /// What the preview renders. It trails `text` by a moment, so typing doesn't re-parse the whole note per key.
+    @State private var previewText: String
     @State private var savedDate: Date?
     @State private var watcher: FileWatcher?
     @State private var saveTask: Task<Void, Never>?
@@ -32,6 +34,7 @@ struct NoteEditorView: View {
         let contents = CourseFiles.read(url) ?? ""
         _text = State(initialValue: contents)
         _savedText = State(initialValue: contents)
+        _previewText = State(initialValue: contents)
         _savedDate = State(initialValue: CourseFiles.modificationDate(url))
     }
 
@@ -46,7 +49,7 @@ struct NoteEditorView: View {
                 if unlocked && mode == .split { Divider() }
                 if !unlocked || mode != .edit {
                     ScrollView {
-                        MarkdownPreview(source: text)
+                        MarkdownPreview(source: previewText)
                             .padding(Theme.Space.xl)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -61,6 +64,10 @@ struct NoteEditorView: View {
             save()
         }
         .onChange(of: text) { scheduleSave() }
+        .task(id: text) {
+            try? await Task.sleep(for: .milliseconds(200))
+            if !Task.isCancelled, previewText != text { previewText = text }
+        }
         .alert("This note changed on disk", isPresented: $conflict) {
             Button("Keep Mine") { overwrite() }
             Button("Use the Disk Version") { reloadFromDisk() }

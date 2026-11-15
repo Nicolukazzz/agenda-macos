@@ -36,7 +36,8 @@ enum BackupService {
             },
             blocks: blocks.map {
                 .init(id: key($0), title: $0.title, start: $0.start, end: $0.end, notes: $0.notes, location: $0.location,
-                      areaID: $0.area.map(key), recurrence: $0.recurrence, exceptionDates: $0.exceptionDates, taskID: $0.linkedTask.map(key))
+                      areaID: $0.area.map(key), recurrence: $0.recurrence, exceptionDates: $0.exceptionDates, taskID: $0.linkedTask.map(key),
+                      isAllDay: $0.isAllDay)
             },
             tasks: tasks.map {
                 .init(id: key($0), title: $0.title, notes: $0.notes, dueDate: $0.dueDate, dueHasTime: $0.dueHasTime, areaID: $0.area.map(key),
@@ -167,7 +168,8 @@ enum BackupService {
         }
         for record in backup.blocks {
             let block = Block(title: record.title, start: record.start, end: record.end, area: record.areaID.flatMap { areas[$0] },
-                              recurrence: record.recurrence, location: record.location, notes: record.notes)
+                              recurrence: record.recurrence, location: record.location, notes: record.notes,
+                              isAllDay: record.isAllDay ?? false)
             block.exceptionDates = record.exceptionDates
             block.linkedTask = record.taskID.flatMap { tasks[$0] }
             context.insert(block)

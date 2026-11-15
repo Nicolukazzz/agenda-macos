@@ -68,6 +68,8 @@ struct TaskEditorView: View {
         .onChange(of: task.dueHasTime) { applyDue() }
         .confirmationDialog("Delete “\(task.title)”?", isPresented: $confirmingDelete) {
             Button("Delete Task", role: .destructive) {
+                // Time reserved for a task that no longer exists would only clutter the calendar.
+                for block in task.scheduledBlocks { context.delete(block) }
                 context.delete(task)
                 try? context.save()
                 dismiss()

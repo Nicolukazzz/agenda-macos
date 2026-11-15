@@ -60,7 +60,7 @@ extension TaskItem {
     }
 }
 
-/// One-line event: color bar, time, title. Draggable to another day.
+/// One-line event: color bar, time (none for all-day events), title. Draggable to another day.
 struct EventChip: View {
     let item: CalendarItem
     var onOpen: (CalendarItem) -> Void
@@ -70,16 +70,18 @@ struct EventChip: View {
             RoundedRectangle(cornerRadius: 1.5)
                 .fill(Color(hex: item.colorHex))
                 .frame(width: 3)
-            Text(item.start.agenda(.dateTime.hour().minute()))
-                .font(Theme.Font.chipTime)
-                .foregroundStyle(.secondary)
+            if !item.isAllDay {
+                Text(item.start.agenda(.dateTime.hour().minute()))
+                    .font(Theme.Font.chipTime)
+                    .foregroundStyle(.secondary)
+            }
             Text(item.block.title)
                 .font(Theme.Font.chip)
                 .lineLimit(1)
         }
         .padding(.horizontal, Theme.Space.xs)
         .frame(maxWidth: .infinity, minHeight: 16, maxHeight: 16, alignment: .leading)
-        .background(Theme.Palette.eventFill(item.colorHex).opacity(0.6), in: RoundedRectangle(cornerRadius: Theme.Radius.chip - 2))
+        .background(Theme.Palette.eventFill(item.colorHex).opacity(item.isAllDay ? 1 : 0.6), in: RoundedRectangle(cornerRadius: Theme.Radius.chip - 2))
         .contentShape(Rectangle())
         .hoverLift(scale: 1.03)
         .onTapGesture { onOpen(item) }
@@ -135,7 +137,8 @@ struct EventRow: View {
     @Environment(\.now) private var now
 
     private var isPast: Bool { item.end <= now }
-    private var isCurrent: Bool { item.start <= now && item.end > now }
+    /// An all-day event has no "now": no countdown, no progress ring.
+    private var isCurrent: Bool { !item.isAllDay && item.start <= now && item.end > now }
     /// Counts down only for what starts within the next few hours.
     private var startsSoon: Bool { item.start > now && item.start.timeIntervalSince(now) < 3 * 3600 }
 
@@ -147,8 +150,12 @@ struct EventRow: View {
             VStack(alignment: .leading, spacing: Theme.Space.xxs) {
                 Text(item.block.title).font(Theme.Font.rowTitle.weight(.medium))
                 HStack(spacing: Theme.Space.s) {
-                    Text("\(item.start.agenda(date: .omitted, time: .shortened)) – \(item.end.agenda(date: .omitted, time: .shortened))")
-                        .monospacedDigit()
+                    if item.isAllDay {
+                        Text("All day")
+                    } else {
+                        Text("\(item.start.agenda(date: .omitted, time: .shortened)) – \(item.end.agenda(date: .omitted, time: .shortened))")
+                            .monospacedDigit()
+                    }
                     if !item.block.location.isEmpty {
                         Label(item.block.location, systemImage: "mappin")
                     }

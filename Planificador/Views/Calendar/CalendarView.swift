@@ -37,7 +37,7 @@ struct CalendarView: View {
                     math: math,
                     onOpen: { editorTarget = .existing($0) },
                     onOpenTask: { editingTask = $0 },
-                    onCreate: { day in editorTarget = newTarget(on: day, kind: .task) },
+                    onCreate: { day, kind in editorTarget = newTarget(on: day, kind: kind) },
                     onOpenDay: { day in
                         withAnimation(Theme.Motion.standard) {
                             appState.calendarAnchor = day
@@ -58,6 +58,7 @@ struct CalendarView: View {
                 )
             }
         }
+        .peekHost()
         .navigationTitle(title)
         .navigationSubtitle(subtitle)
         .toolbar { toolbar }

@@ -11,6 +11,7 @@ struct CalendarItem: Identifiable, Hashable {
     var start: Date { occurrence.start }
     var end: Date { occurrence.end }
     var isRecurring: Bool { occurrence.isRecurring }
+    var isAllDay: Bool { block.isAllDay }
     var colorHex: String { block.area?.colorHex ?? CoursePalette.hexColors.last! }
 
     static func == (lhs: CalendarItem, rhs: CalendarItem) -> Bool { lhs.id == rhs.id }
@@ -86,7 +87,7 @@ enum BlockActions {
     static func detach(_ item: CalendarItem, context: ModelContext, math: CalendarMath) -> Block {
         let source = item.block
         source.exceptionDates.append(math.startOfDay(item.start))
-        let copy = Block(title: source.title, start: item.start, end: item.end, area: source.area, location: source.location, notes: source.notes)
+        let copy = Block(title: source.title, start: item.start, end: item.end, area: source.area, location: source.location, notes: source.notes, isAllDay: source.isAllDay)
         context.insert(copy)
         return copy
     }

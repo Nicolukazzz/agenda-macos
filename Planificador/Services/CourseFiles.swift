@@ -18,6 +18,8 @@ struct NoteFile: Identifiable, Hashable {
 struct FileNode: Identifiable, Hashable {
     let url: URL
     let isFolder: Bool
+    /// Read once while scanning, so rows don't hit the disk every time they draw.
+    var modified: Date?
     var children: [FileNode]?
 
     var id: URL { url }
@@ -39,6 +41,7 @@ final class CourseFiles {
     /// Folders that are never worth browsing.
     private static let skipped: Set<String> = ["node_modules", ".git", ".build", "build", "DerivedData", "__pycache__", ".venv"]
     private static let maxDepth = 6
+    private static let scanKeys: Set<URLResourceKey> = [.isDirectoryKey, .isPackageKey, .contentModificationDateKey]
 
     var notesFolder: URL { folder.appending(path: NoteNaming.notesFolderName, directoryHint: .isDirectory) }
 
@@ -58,7 +61,7 @@ final class CourseFiles {
             return NoteFile(
                 url: node.url,
                 title: NoteNaming.displayTitle(fileName: node.name, contents: Self.head(of: node.url)),
-                modified: (try? node.url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast,
+                modified: node.modified ?? .distantPast,
                 isNote: isNote)
         }
         notes = files.filter(\.isNote).sorted { $0.modified > $1.modified }
@@ -109,13 +112,14 @@ final class CourseFiles {
     private static func scan(_ url: URL, depth: Int) -> [FileNode] {
         guard depth < maxDepth else { return [] }
         let items = (try? FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: [.isDirectoryKey, .isPackageKey], options: [.skipsHiddenFiles])) ?? []
+            at: url, includingPropertiesForKeys: Array(scanKeys), options: [.skipsHiddenFiles])) ?? []
         return items
             .filter { !skipped.contains($0.lastPathComponent) }
             .map { item in
-                let values = try? item.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey])
+                let values = try? item.resourceValues(forKeys: scanKeys)
                 let isFolder = values?.isDirectory == true && values?.isPackage != true
-                return FileNode(url: item, isFolder: isFolder, children: isFolder ? scan(item, depth: depth + 1) : nil)
+                return FileNode(url: item, isFolder: isFolder, modified: values?.contentModificationDate,
+                                children: isFolder ? scan(item, depth: depth + 1) : nil)
             }
             .sorted { lhs, rhs in
                 if lhs.isFolder != rhs.isFolder { return lhs.isFolder }

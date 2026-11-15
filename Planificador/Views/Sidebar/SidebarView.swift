@@ -61,10 +61,11 @@ struct SidebarView: View {
         }
     }
 
-    /// Overdue + due today, shown as the Today badge.
+    /// Overdue + due today in the active semester (what Today lists), shown as the Today badge.
     private var pendingToday: Int {
         let math = CalendarMath()
         return openTasks.filter {
+            guard $0.area.map({ $0.semester?.isActive == true }) ?? true else { return false }
             let bucket = TaskBucket.bucket(due: $0.dueDate, hasTime: $0.dueHasTime, now: .now, math: math)
             return bucket == .overdue || bucket == .today
         }.count

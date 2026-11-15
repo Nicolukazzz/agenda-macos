@@ -11,13 +11,9 @@ struct FilesView: View {
     @State private var search = ""
     @State private var quickLook: URL?
 
-    private var allFiles: [FileNode] { CourseFiles.flatten(files.tree).filter { !$0.isFolder } }
-
-    private var results: [FileNode] {
-        allFiles.filter { $0.name.localizedStandardContains(search) }
-    }
-
     var body: some View {
+        // Flattened once per redraw; the count, the search and Quick Look all use it.
+        let allFiles = CourseFiles.flatten(files.tree).filter { !$0.isFolder }
         VStack(spacing: 0) {
             HStack(spacing: Theme.Space.s) {
                 SearchField(text: $search, prompt: "Search files")
@@ -36,7 +32,7 @@ struct FilesView: View {
                         FileRow(node: node).tag(node.url)
                     }
                 } else {
-                    ForEach(results) { node in
+                    ForEach(allFiles.filter { $0.name.localizedStandardContains(search) }) { node in
                         FileRow(node: node, showsParent: true).tag(node.url)
                     }
                 }
@@ -90,7 +86,7 @@ private struct FileRow: View {
                 }
             }
             Spacer()
-            if !node.isFolder, let date = modified {
+            if !node.isFolder, let date = node.modified {
                 Text(date.agenda(.dateTime.day().month(.abbreviated).year()))
                     .font(Theme.Font.caption)
                     .foregroundStyle(.secondary)
@@ -98,9 +94,5 @@ private struct FileRow: View {
             }
         }
         .help(node.url.path(percentEncoded: false))
-    }
-
-    private var modified: Date? {
-        try? node.url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
     }
 }

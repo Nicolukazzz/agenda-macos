@@ -93,6 +93,8 @@ final class Block {
     /// Start-of-day dates where a recurring block does not happen (cancelled or moved "only this time").
     var exceptionDates: [Date]
     var linkedTask: TaskItem?
+    /// Lasts the whole day: `start` is midnight and `end` the next midnight. Drawn above the hour grid.
+    var isAllDay: Bool = false
 
     /// Part of the class timetable (a course's weekly slot from the Schedule tab or an import).
     /// The month view hides these; it shows only what the user creates (tasks and one-off events).
@@ -100,7 +102,7 @@ final class Block {
         recurrence != nil && area?.folderPath != nil
     }
 
-    init(title: String, start: Date, end: Date, area: Area? = nil, recurrence: WeeklyRecurrence? = nil, location: String = "", notes: String = "") {
+    init(title: String, start: Date, end: Date, area: Area? = nil, recurrence: WeeklyRecurrence? = nil, location: String = "", notes: String = "", isAllDay: Bool = false) {
         self.title = title
         self.start = start
         self.end = end
@@ -109,6 +111,7 @@ final class Block {
         self.area = area
         self.recurrence = recurrence
         self.exceptionDates = []
+        self.isAllDay = isAllDay
     }
 }
 
