@@ -10,6 +10,9 @@ struct AgendaSettingsView: View {
     @AppStorage("weekFirstHour") private var firstHour = 6
     @AppStorage("weekLastHour") private var lastHour = 23
     @AppStorage(MoneySettings.rateKey) private var copPerUSD = MoneySettings.defaultRate
+    @AppStorage(ClassAlerts.enabledKey) private var classAlerts = false
+    @AppStorage(ClassAlerts.leadKey) private var classAlertLead = ClassAlerts.defaultLead
+    @State private var classAlertsDenied = false
 
     var body: some View {
         PageContent(maxWidth: 560) {
@@ -46,6 +49,34 @@ struct AgendaSettingsView: View {
                         Stepper("\(lastHour):00", value: $lastHour, in: (firstHour + 4)...24)
                             .monospacedDigit()
                     }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: Theme.Space.s) {
+                SectionHeader("Class Alerts")
+                Card {
+                    CardRow(icon: "bell.badge", iconColor: classAlerts ? .accentColor : .secondary) {
+                        CardToggle(title: "Notify me before each class", isOn: $classAlerts)
+                    }
+                    if classAlerts {
+                        CardDivider()
+                        CardRow(icon: "timer") {
+                            Text("How early")
+                            Spacer()
+                            Stepper("\(classAlertLead) min", value: $classAlertLead, in: 5...60, step: 5)
+                                .monospacedDigit()
+                        }
+                    }
+                    CardNote(text: classAlertsDenied
+                        ? "macOS isn’t letting Agenda notify. Allow it in System Settings → Notifications → Agenda, then turn this on again."
+                        : "A notification with the course, the time and the room, from your timetable. Open Agenda at least every two weeks to keep them coming.")
+                }
+            }
+            .onChange(of: classAlerts) {
+                guard classAlerts else { return }
+                Task {
+                    classAlertsDenied = await !ClassAlerts.requestPermission()
+                    if classAlertsDenied { classAlerts = false }
                 }
             }
 
