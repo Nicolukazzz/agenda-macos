@@ -33,13 +33,28 @@ struct MoneyPage: View {
         entries.filter { $0.date >= start && $0.date < end }
     }
 
-    private var monthEntries: [MoneyEntry] { entries(from: monthStart, to: nextMonthStart) }
-    private var totals: MoneyTotals { MoneyTotals(monthEntries.map(\.value), in: display) }
-    private var variableSpent: Decimal { MoneyTotals(monthEntries.filter { $0.recurring == nil }.map(\.value), in: display).expense }
+    /// The shown month's figures, worked out once per redraw and handed to every section.
+    private struct MonthData {
+        let entries: [MoneyEntry]
+        let totals: MoneyTotals
+        let variableSpent: Decimal
+        let slices: [Slice]
+    }
+
+    private var monthData: MonthData {
+        let entries = entries(from: monthStart, to: nextMonthStart)
+        return MonthData(
+            entries: entries,
+            totals: MoneyTotals(entries.map(\.value), in: display),
+            variableSpent: MoneyTotals(entries.filter { $0.recurring == nil }.map(\.value), in: display).expense,
+            slices: slices(of: entries))
+    }
 
     var body: some View {
+        let data = monthData
+        let totals = data.totals
         PageContent {
-            hero
+            hero(totals)
             HStack(spacing: Theme.Space.m) {
                 BigButton(title: "Add Expense", systemImage: "minus.circle.fill") { newEntryKind = .expense }
                     .keyboardShortcut("n", modifiers: [.command, .option])
@@ -47,16 +62,16 @@ struct MoneyPage: View {
             }
             MoneyQuickAddBar(categories: categories)
             ForEach(suggestions, id: \.key) { suggestionCard($0) }
-            RecurringCard(display: display, variableSpent: variableSpent, categories: categories)
-            if monthEntries.isEmpty {
+            RecurringCard(display: display, variableSpent: data.variableSpent, categories: categories)
+            if data.entries.isEmpty {
                 EmptyState(title: "Nothing logged in \(monthName)", systemImage: "banknote",
                            message: "Click Add Expense or Add Income. Every entry feeds the totals and charts.")
             } else {
                 if totals.expense > 0 {
-                    categoryCard
-                    dailyCard
+                    categoryCard(data)
+                    dailyCard(data.entries)
                 }
-                entryList
+                entryList(data.entries)
             }
         }
         .navigationTitle("Money")
@@ -94,7 +109,7 @@ struct MoneyPage: View {
     // MARK: Hero
 
     /// The month at a glance: what went out, big and centered, with what came in and what's left.
-    private var hero: some View {
+    private func hero(_ totals: MoneyTotals) -> some View {
         VStack(spacing: Theme.Space.s) {
             Text(isCurrentMonth ? "Spent this month" : "Spent in \(monthStart.agenda(.dateTime.month(.wide)))")
                 .font(Theme.Font.rowDetail.weight(.semibold))
@@ -106,14 +121,14 @@ struct MoneyPage: View {
                 .contentTransition(.numericText())
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-            if let paceText {
+            if let paceText = paceText(totals) {
                 Text(paceText).font(Theme.Font.rowDetail).foregroundStyle(.secondary)
             }
             HStack(spacing: Theme.Space.xl) {
                 heroFigure("Earned", display.format(totals.income), tint: Theme.Palette.success)
                 Divider().frame(height: 32)
                 heroFigure("Balance", display.format(totals.net, signed: true), tint: totals.net < 0 ? Theme.Palette.danger : .primary)
-                if let savingsText {
+                if let savingsText = savingsText(totals) {
                     Divider().frame(height: 32)
                     heroFigure("Kept", savingsText, tint: .primary)
                 }
@@ -135,7 +150,7 @@ struct MoneyPage: View {
     }
 
     /// This month so far against the previous month up to the same day (whole months when looking back).
-    private var paceText: String? {
+    private func paceText(_ totals: MoneyTotals) -> String? {
         let cutoff = isCurrentMonth ? now : nextMonthStart
         let previousStart = math.add(months: -1, to: monthStart)
         let previous = MoneyTotals(entries(from: previousStart, to: math.add(months: -1, to: cutoff)).map(\.value), in: display).expense
@@ -148,7 +163,7 @@ struct MoneyPage: View {
     }
 
     /// Share of income left, e.g. "85%". Nil without income.
-    private var savingsText: String? {
+    private func savingsText(_ totals: MoneyTotals) -> String? {
         guard let rate = totals.savingsRate else { return nil }
         return Double(truncating: rate as NSNumber).formatted(.percent.precision(.fractionLength(0)))
     }
@@ -214,7 +229,7 @@ struct MoneyPage: View {
         var hex: String { category?.colorHex ?? Theme.Palette.noAreaHex }
     }
 
-    private var slices: [Slice] {
+    private func slices(of monthEntries: [MoneyEntry]) -> [Slice] {
         let expenses = monthEntries.filter { $0.kind == .expense }
         return Dictionary(grouping: expenses) { $0.category?.persistentModelID }
             .map { id, items in
@@ -223,14 +238,14 @@ struct MoneyPage: View {
             .sorted { $0.amount > $1.amount }
     }
 
-    private var categoryCard: some View {
+    private func categoryCard(_ data: MonthData) -> some View {
         VStack(alignment: .leading, spacing: Theme.Space.s) {
             SectionHeader("Where It Went", detail: filter.map { "Showing \($0.name) · click again to show all" })
             Card {
                 HStack(alignment: .center, spacing: Theme.Space.xl) {
-                    donut.frame(width: 200, height: 200)
+                    donut(data).frame(width: 200, height: 200)
                     VStack(spacing: 0) {
-                        ForEach(slices) { slice in legendRow(slice) }
+                        ForEach(data.slices) { slice in legendRow(slice, totals: data.totals) }
                     }
                 }
                 .padding(Theme.Space.l)
@@ -238,9 +253,9 @@ struct MoneyPage: View {
         }
     }
 
-    private var donut: some View {
-        let data = slices
-        return Chart(data) { slice in
+    private func donut(_ data: MonthData) -> some View {
+        let totals = data.totals
+        return Chart(data.slices) { slice in
             SectorMark(angle: .value("Amount", Double(truncating: slice.amount as NSNumber)),
                        innerRadius: .ratio(0.64), angularInset: 1.5)
                 .cornerRadius(4)
@@ -262,7 +277,7 @@ struct MoneyPage: View {
         .animation(Theme.Motion.standard, value: filter)
     }
 
-    private func legendRow(_ slice: Slice) -> some View {
+    private func legendRow(_ slice: Slice, totals: MoneyTotals) -> some View {
         let share = totals.expense > 0 ? Double(truncating: (slice.amount / totals.expense) as NSNumber) : 0
         let selected = filter != nil && filter?.persistentModelID == slice.id
         return Button {
@@ -289,7 +304,7 @@ struct MoneyPage: View {
 
     // MARK: Day by day
 
-    private var dailyCard: some View {
+    private func dailyCard(_ monthEntries: [MoneyEntry]) -> some View {
         let expenses = monthEntries.filter { $0.kind == .expense && (filter == nil || $0.category === filter) }
         let byDay = Dictionary(grouping: expenses) { math.startOfDay($0.date) }
             .map { (day: $0.key, amount: Double(truncating: MoneyTotals($0.value.map(\.value), in: display).expense as NSNumber)) }
@@ -325,7 +340,7 @@ struct MoneyPage: View {
 
     // MARK: Entries
 
-    private var entryList: some View {
+    private func entryList(_ monthEntries: [MoneyEntry]) -> some View {
         let shown = monthEntries.filter { filter == nil || $0.category === filter }
         let days = Dictionary(grouping: shown) { math.startOfDay($0.date) }.sorted { $0.key > $1.key }
         return ForEach(days, id: \.key) { day, items in
