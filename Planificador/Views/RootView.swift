@@ -23,7 +23,11 @@ struct RootView: View {
                 .onReceive(RemindersSync.triggers) { _ in appState.reminders.schedule() }
                 // A save, or the display currency / dollar rate changing: the widget follows (no-op when nothing changed).
                 // One debounced stream, so a burst of saves or preference writes costs a single refresh.
-                .onReceive(Self.widgetTriggers) { _ in MoneyService.refreshWidgets(context) }
+                .onReceive(Self.widgetTriggers) { _ in
+                    MoneyService.refreshWidgets(context)
+                    // The timetable or the alert settings may have changed too.
+                    ClassAlerts.refresh(context, semester: semester)
+                }
                 .onOpenURL { url in
                     // Widget buttons: repeat a frequent entry, or open Money ready to type.
                     guard url.scheme == "agenda", url.host() == "money" else { return }
@@ -75,6 +79,8 @@ struct MainSplitView: View {
             MoneyService.refreshWidgets(context)
             // The app can stay open for weeks: the daily backup can't depend on a relaunch.
             BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
+            // Each new day pushes the two weeks of class alerts one day further.
+            ClassAlerts.refresh(context, semester: semester)
         }
         .onReceive(Self.dayChanges) { _ in
             now = .now
