@@ -11,7 +11,7 @@ struct MonthView: View {
     let math: CalendarMath
     var onOpen: (CalendarItem) -> Void
     var onOpenTask: (TaskItem) -> Void
-    var onCreate: (Date) -> Void
+    var onCreate: (Date, NewItemKind) -> Void
     var onOpenDay: (Date) -> Void
     var onDrop: (String, Date) -> Bool
 
@@ -24,6 +24,9 @@ struct MonthView: View {
             GeometryReader { proxy in
                 let rows = grid
                 let rowHeight = proxy.size.height / CGFloat(max(rows.count, 1))
+                // Grouped once per redraw instead of filtering the whole month for each of the 42 cells.
+                let itemsByDay = Dictionary(grouping: items.filter { !$0.block.isClassSchedule }) { math.startOfDay($0.start) }
+                let tasksByDay = Dictionary(grouping: tasks) { $0.dueDate.map(math.startOfDay) ?? .distantPast }
                 VStack(spacing: 0) {
                     ForEach(rows, id: \.first) { week in
                         HStack(spacing: 0) {
@@ -33,12 +36,12 @@ struct MonthView: View {
                                     isInMonth: math.isSameMonth(day, anchor),
                                     isToday: math.isSameDay(day, .now),
                                     isWeekend: isWeekend(day),
-                                    items: items.filter { !$0.block.isClassSchedule && math.isSameDay($0.start, day) },
-                                    tasks: tasks.filter { $0.dueDate.map { math.isSameDay($0, day) } ?? false },
+                                    items: itemsByDay[day] ?? [],
+                                    tasks: tasksByDay[day] ?? [],
                                     height: rowHeight,
                                     onOpen: onOpen,
                                     onOpenTask: onOpenTask,
-                                    onCreate: { onCreate(day) },
+                                    onCreate: { onCreate(day, $0) },
                                     onOpenDay: { onOpenDay(day) },
                                     onDrop: { onDrop($0, day) }
                                 )
@@ -81,7 +84,7 @@ private struct MonthDayCell: View {
     let height: CGFloat
     var onOpen: (CalendarItem) -> Void
     var onOpenTask: (TaskItem) -> Void
-    var onCreate: () -> Void
+    var onCreate: (NewItemKind) -> Void
     var onOpenDay: () -> Void
     var onDrop: (String) -> Bool
 
@@ -112,12 +115,14 @@ private struct MonthDayCell: View {
         }
         .overlay(alignment: .trailing) { Rectangle().fill(Theme.Palette.gridLine).frame(width: 1) }
         .contentShape(Rectangle())
-        .onTapGesture(count: 2, perform: onCreate)
+        .onTapGesture(count: 2) { onCreate(.task) }
         .dropDestination(for: String.self) { payloads, _ in
             payloads.first.map(onDrop) ?? false
         } isTargeted: { isTargeted = $0 }
         .contextMenu {
-            Button("New Event", systemImage: "plus", action: onCreate)
+            Button("New Task", systemImage: "checklist") { onCreate(.task) }
+            Button("New Event", systemImage: "calendar.badge.plus") { onCreate(.event) }
+            Divider()
             Button("Show Week", systemImage: "calendar.day.timeline.left", action: onOpenDay)
         }
     }
@@ -138,7 +143,7 @@ private struct MonthDayCell: View {
     }
 
     private var dayLabel: String {
-        let dayNumber = Calendar.current.component(.day, from: day)
+        let dayNumber = Calendar.autoupdatingCurrent.component(.day, from: day)
         return dayNumber == 1 ? day.agenda(.dateTime.day().month(.abbreviated)) : "\(dayNumber)"
     }
 

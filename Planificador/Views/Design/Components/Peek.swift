@@ -2,12 +2,33 @@ import AgendaCore
 import SwiftUI
 
 // Hover details: rest the pointer on a calendar item to see everything about it without opening it.
+//
+// The peek is drawn inside the window by `peekHost()`, not in a popover: a popover is a second window
+// that takes the pointer away from the item (the hand cursor drops back to the arrow) and costs a
+// window, a material and an animation every time it opens.
 
 extension View {
-    /// Opens `peek` in a popover after the pointer rests on this view. Clicks and drags still go through.
+    /// Shows `peek` beside this view after the pointer rests on it. Clicks and drags still go through.
+    /// Needs a `peekHost()` on a view around it.
     func hoverPeek<Peek: View>(isEnabled: Bool = true, @ViewBuilder _ peek: @escaping () -> Peek) -> some View {
         modifier(HoverPeek(isEnabled: isEnabled, peek: peek))
     }
+
+    /// Draws the peeks asked for by the views inside, on top of them. One per page.
+    func peekHost() -> some View {
+        modifier(PeekHost())
+    }
+}
+
+/// The item being peeked: where it is and what to show.
+private struct PeekRequest {
+    let anchor: Anchor<CGRect>
+    let content: AnyView
+}
+
+private struct PeekKey: PreferenceKey {
+    static var defaultValue: PeekRequest? { nil }
+    static func reduce(value: inout PeekRequest?, nextValue: () -> PeekRequest?) { value = value ?? nextValue() }
 }
 
 private struct HoverPeek<Peek: View>: ViewModifier {
@@ -25,11 +46,57 @@ private struct HoverPeek<Peek: View>: ViewModifier {
                 try? await Task.sleep(for: Theme.Motion.peekDelay)
                 if !Task.isCancelled { isShown = true }
             }
-            .popover(isPresented: $isShown, arrowEdge: .trailing) {
-                peek()
-                    .padding(Theme.Space.l)
-                    .frame(width: Theme.Size.peekWidth, alignment: .leading)
+            // A click opens the item, so the peek gets out of the way until the pointer comes back.
+            .simultaneousGesture(TapGesture().onEnded { isShown = false })
+            .anchorPreference(key: PeekKey.self, value: .bounds) { anchor in
+                isShown ? PeekRequest(anchor: anchor, content: AnyView(peek())) : nil
             }
+    }
+}
+
+private struct PeekHost: ViewModifier {
+    func body(content: Content) -> some View {
+        content.overlayPreferenceValue(PeekKey.self) { request in
+            GeometryReader { proxy in
+                if let request {
+                    PeekPlacement(target: proxy[request.anchor], margin: Theme.Space.s) {
+                        request.content
+                            .padding(Theme.Space.l)
+                            .frame(width: Theme.Size.peekWidth, alignment: .leading)
+                            .glassEffect(.regular, in: .rect(cornerRadius: Theme.Radius.card))
+                            .shadow(color: .black.opacity(0.16), radius: 12, y: 6)
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .animation(Theme.Motion.snappy, value: request == nil)
+            // Never under the pointer as far as events go: the item keeps its hover and its cursor.
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+        }
+    }
+}
+
+/// Puts the peek beside its item: trailing when it fits, else leading, always inside the page.
+private struct PeekPlacement: Layout {
+    let target: CGRect
+    /// Gap to the item and to the page edges.
+    let margin: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let peek = subviews.first else { return }
+        let size = peek.sizeThatFits(.unspecified)
+        var x = target.maxX + margin
+        if x + size.width > bounds.width - margin {
+            let leading = target.minX - margin - size.width
+            x = leading >= margin ? leading : max(margin, bounds.width - margin - size.width)
+        }
+        let y = min(max(target.minY, margin), max(margin, bounds.height - margin - size.height))
+        peek.place(at: CGPoint(x: bounds.minX + x, y: bounds.minY + y), proposal: .unspecified)
     }
 }
 
@@ -80,7 +147,9 @@ struct EventPeek: View {
     var body: some View {
         let block = item.block
         PeekCard(title: block.title, colorHex: item.colorHex) {
-            PeekRow(systemImage: "clock", text: "\(item.start.agenda(.dateTime.weekday(.wide).day().month(.wide))), \(item.start.agenda(date: .omitted, time: .shortened)) – \(item.end.agenda(date: .omitted, time: .shortened))")
+            PeekRow(systemImage: "clock", text: item.isAllDay
+                ? "\(item.start.agenda(.dateTime.weekday(.wide).day().month(.wide))), all day"
+                : "\(item.start.agenda(.dateTime.weekday(.wide).day().month(.wide))), \(item.start.agenda(date: .omitted, time: .shortened)) – \(item.end.agenda(date: .omitted, time: .shortened))")
             if item.isRecurring { PeekRow(systemImage: "repeat", text: "Every week") }
             if !block.location.isEmpty { PeekRow(systemImage: "mappin.and.ellipse", text: block.location) }
             if let area = block.area {

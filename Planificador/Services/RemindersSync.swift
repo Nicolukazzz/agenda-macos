@@ -159,7 +159,10 @@ final class RemindersSync {
             }
             let phoneDeletedIDs = Set(deletedOnPhone.compactMap(\.reminderID))
             let deleted = Set(deletedOnPhone.map(ObjectIdentifier.init))
-            for task in deletedOnPhone { context.delete(task) }
+            for task in deletedOnPhone {
+                for block in task.scheduledBlocks { context.delete(block) }
+                context.delete(task)
+            }
             let live = tasks.filter { !deleted.contains(ObjectIdentifier($0)) }
 
             // Tasks deleted in the app: remove their reminders.

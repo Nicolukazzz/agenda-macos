@@ -2,11 +2,11 @@
 
 A native macOS planner for university life: an Outlook-style calendar, quick-add tasks per course, and Markdown notes that live in your own class folders. Built with SwiftUI, SwiftData and Liquid Glass.
 
-Agenda is **fully offline**: no accounts, no sync, no network code. Everything stays on your Mac.
+Agenda is **fully offline**: no accounts, no servers, no network code. Everything stays on your Mac. The one optional bridge out is Apple Reminders: tasks marked "Create reminder" are kept in step with it (and so with your iPhone, through your own iCloud).
 
 ## Features
 
-- **Calendar** — month view for deadlines and your own events; week view with your class timetable. Drag to create, move and resize; repeating classes with "only this event / all events" edits and semester breaks.
+- **Calendar** — month view for deadlines and your own events; week view with your class timetable. Drag to create, move and resize; all-day events; repeating classes with "only this event / all events" edits and semester breaks.
 - **Tasks** — one-line quick add in English or Spanish: `Lab report #os friday 6pm !` or `Taller #so el otro miércoles`. Grouped into Overdue, Today, Tomorrow, This Week and Later; subtasks, priorities, and work blocks reserved in the calendar.
 - **Today** — today's classes, your own schedule, and what's due.
 - **Courses from folders** — reads `<classes root>/<YYYY-N>/<Course>/`. Each course gets a `#tag`, a color, a schedule, tasks, notes and a file browser.

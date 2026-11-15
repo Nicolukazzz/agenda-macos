@@ -43,8 +43,11 @@ public struct AgendaBackup: Codable, Equatable, Sendable {
         public var recurrence: WeeklyRecurrence?
         public var exceptionDates: [Date]
         public var taskID: String?
-        public init(id: String, title: String, start: Date, end: Date, notes: String, location: String, areaID: String?, recurrence: WeeklyRecurrence?, exceptionDates: [Date], taskID: String?) {
+        /// Nil in backups from before all-day events; means false.
+        public var isAllDay: Bool?
+        public init(id: String, title: String, start: Date, end: Date, notes: String, location: String, areaID: String?, recurrence: WeeklyRecurrence?, exceptionDates: [Date], taskID: String?, isAllDay: Bool? = nil) {
             self.id = id; self.title = title; self.start = start; self.end = end; self.notes = notes; self.location = location; self.areaID = areaID; self.recurrence = recurrence; self.exceptionDates = exceptionDates; self.taskID = taskID
+            self.isAllDay = isAllDay
         }
     }
 

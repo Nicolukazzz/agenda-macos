@@ -43,6 +43,7 @@ struct BlockEditorView: View {
     @State private var day = Date.now
     @State private var startTime = Date.now
     @State private var endTime = Date.now
+    @State private var allDay = false
     @State private var repeats = false
     @State private var weekdays: Set<Int> = []
     @State private var location = ""
@@ -76,8 +77,10 @@ struct BlockEditorView: View {
             _title = State(initialValue: block.title)
             _area = State(initialValue: block.area)
             _day = State(initialValue: item.start)
-            _startTime = State(initialValue: item.start)
-            _endTime = State(initialValue: item.end)
+            _allDay = State(initialValue: block.isAllDay)
+            // An all-day event has no times of its own; these show up if "All day" is turned off.
+            _startTime = State(initialValue: block.isAllDay ? math.date(item.start, atMinutes: 9 * 60) : item.start)
+            _endTime = State(initialValue: block.isAllDay ? math.date(item.start, atMinutes: 10 * 60) : item.end)
             _repeats = State(initialValue: block.recurrence != nil)
             _weekdays = State(initialValue: block.recurrence?.weekdays ?? [math.calendar.component(.weekday, from: item.start)])
             _location = State(initialValue: block.location)
@@ -129,6 +132,7 @@ struct BlockEditorView: View {
                 onPrimary: attemptSave)
         }
         .animation(Theme.Motion.snappy, value: repeats)
+        .animation(Theme.Motion.snappy, value: allDay)
         .animation(Theme.Motion.snappy, value: taskHasTime)
         .animation(Theme.Motion.snappy, value: taskHasDue)
         .confirmationDialog("This event repeats", isPresented: $askingScope) {
@@ -161,22 +165,28 @@ struct BlockEditorView: View {
                     DatePill(date: $day, showsIcon: false)
                 }
                 CardDivider()
-                CardRow(icon: "clock") {
-                    Text("Time")
-                    Spacer()
-                    // Moving the start keeps the duration, like Calendar does.
-                    TimePill(time: Binding(
-                        get: { startTime },
-                        set: { newValue in
-                            endTime = newValue.addingTimeInterval(endTime.timeIntervalSince(startTime))
-                            startTime = newValue
-                        }), showsIcon: false)
-                    Image(systemName: "arrow.right").foregroundStyle(.tertiary)
-                    TimePill(time: $endTime, showsIcon: false)
+                CardRow(icon: "sun.max", iconColor: allDay ? .accentColor : .secondary) {
+                    CardToggle(title: "All day", isOn: $allDay)
                 }
-                CardDivider()
-                CardRow(icon: "hourglass") {
-                    DurationChips(start: newStart, end: Binding(get: { newEnd }, set: { endTime = $0 }))
+                if !allDay {
+                    CardDivider()
+                    CardRow(icon: "clock") {
+                        Text("Time")
+                        Spacer()
+                        // Moving the start keeps the duration, like Calendar does.
+                        TimePill(time: Binding(
+                            get: { startTime },
+                            set: { newValue in
+                                endTime = newValue.addingTimeInterval(endTime.timeIntervalSince(startTime))
+                                startTime = newValue
+                            }), showsIcon: false)
+                        Image(systemName: "arrow.right").foregroundStyle(.tertiary)
+                        TimePill(time: $endTime, showsIcon: false)
+                    }
+                    CardDivider()
+                    CardRow(icon: "hourglass") {
+                        DurationChips(start: newStart, end: Binding(get: { newEnd }, set: { endTime = $0 }))
+                    }
                 }
             }
 
@@ -214,12 +224,6 @@ struct BlockEditorView: View {
 
     // MARK: State
 
-    private func binding(for weekday: Int) -> Binding<Bool> {
-        Binding(
-            get: { weekdays.contains(weekday) },
-            set: { isOn in if isOn { weekdays.insert(weekday) } else { weekdays.remove(weekday) } })
-    }
-
     private var resolved: (title: String, area: Area?) {
         let known = Set(semester.sortedAreas.map(\.tag))
         let extracted = TagCompletion.extract(from: title, known: known)
@@ -227,8 +231,10 @@ struct BlockEditorView: View {
         return (extracted.title.trimmingCharacters(in: .whitespaces), taggedArea ?? area)
     }
 
-    private var newStart: Date { math.date(day, keepingTimeOf: startTime) }
-    private var newEnd: Date { math.date(day, keepingTimeOf: endTime) }
+    private var timedStart: Date { math.date(day, keepingTimeOf: startTime) }
+    /// An all-day event runs from midnight to the next midnight.
+    private var newStart: Date { allDay ? math.startOfDay(day) : timedStart }
+    private var newEnd: Date { allDay ? math.add(days: 1, to: math.startOfDay(day)) : math.date(day, keepingTimeOf: endTime) }
 
     private var problem: String? {
         if resolved.title.isEmpty && resolved.area == nil { return "Enter a title or pick a course." }
@@ -269,12 +275,13 @@ struct BlockEditorView: View {
                 block.end = newEnd
                 block.recurrence = recurrence
             }
+            block.isAllDay = allDay
             block.title = finalTitle
             block.area = finalArea
             block.location = location
             block.notes = notes
         } else {
-            let block = Block(title: finalTitle, start: newStart, end: newEnd, area: finalArea, recurrence: recurrence, location: location, notes: notes)
+            let block = Block(title: finalTitle, start: newStart, end: newEnd, area: finalArea, recurrence: recurrence, location: location, notes: notes, isAllDay: allDay)
             context.insert(block)
         }
         try? context.save()
@@ -283,7 +290,7 @@ struct BlockEditorView: View {
 
     private func saveTask() {
         let (cleanTitle, finalArea) = resolved
-        let due = taskHasDue ? (taskHasTime ? newStart : math.date(day, atMinutes: 23 * 60 + 59)) : nil
+        let due = taskHasDue ? (taskHasTime ? timedStart : math.date(day, atMinutes: 23 * 60 + 59)) : nil
         let task = TaskItem(
             title: cleanTitle.isEmpty ? (finalArea?.name ?? "Task") : cleanTitle,
             dueDate: due, dueHasTime: taskHasDue && taskHasTime, area: finalArea, priority: taskPriority, notes: notes)
@@ -293,12 +300,12 @@ struct BlockEditorView: View {
         dismiss()
     }
 
-    /// Turns a one-off event into a task due at the event's start; the event is removed.
+    /// Turns a one-off event into a task due at the event's start (an all-day one: due that day); the event is removed.
     private func convertToTask(_ item: CalendarItem) {
         let (cleanTitle, finalArea) = resolved
         let task = TaskItem(
             title: cleanTitle.isEmpty ? item.block.title : cleanTitle,
-            dueDate: newStart, dueHasTime: true, area: finalArea, notes: notes)
+            dueDate: allDay ? math.date(day, atMinutes: 23 * 60 + 59) : newStart, dueHasTime: !allDay, area: finalArea, notes: notes)
         context.insert(task)
         context.delete(item.block)
         try? context.save()

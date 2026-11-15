@@ -64,16 +64,10 @@ struct AgendaCommands: Commands {
                 appState.pendingCommand = .calendarToday
             }
             .keyboardShortcut("t")
-            Button("Previous") {
-                appState.selection = .calendar
-                appState.pendingCommand = .calendarPrevious
-            }
-            .keyboardShortcut(.leftArrow)
-            Button("Next") {
-                appState.selection = .calendar
-                appState.pendingCommand = .calendarNext
-            }
-            .keyboardShortcut(.rightArrow)
+            Button("Previous") { step(.calendarPrevious, whileTyping: #selector(NSResponder.moveToBeginningOfLine(_:))) }
+                .keyboardShortcut(.leftArrow)
+            Button("Next") { step(.calendarNext, whileTyping: #selector(NSResponder.moveToEndOfLine(_:))) }
+                .keyboardShortcut(.rightArrow)
             Divider()
             Button("Month") {
                 appState.selection = .calendar
@@ -86,6 +80,19 @@ struct AgendaCommands: Commands {
             }
             .keyboardShortcut("w", modifiers: [.command, .control])
         }
+    }
+}
+
+extension AgendaCommands {
+    /// ⌘← and ⌘→ belong to the text cursor while typing (a title, a note); the calendar takes them otherwise.
+    @MainActor
+    private func step(_ command: AppCommand, whileTyping textAction: Selector) {
+        if NSApp.keyWindow?.firstResponder is NSTextView {
+            NSApp.sendAction(textAction, to: nil, from: nil)
+            return
+        }
+        appState.selection = .calendar
+        appState.pendingCommand = command
     }
 }
 

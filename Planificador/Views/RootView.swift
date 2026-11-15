@@ -21,11 +21,9 @@ struct RootView: View {
                     appState.reminders.attach(context)
                 }
                 .onReceive(RemindersSync.triggers) { _ in appState.reminders.schedule() }
-                .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in MoneyService.refreshWidgets(context) }
-                // Display currency or dollar rate changed: the widget follows right away (no-op when nothing changed).
-                .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).debounce(for: .milliseconds(300), scheduler: RunLoop.main)) { _ in
-                    MoneyService.refreshWidgets(context)
-                }
+                // A save, or the display currency / dollar rate changing: the widget follows (no-op when nothing changed).
+                // One debounced stream, so a burst of saves or preference writes costs a single refresh.
+                .onReceive(Self.widgetTriggers) { _ in MoneyService.refreshWidgets(context) }
                 .onOpenURL { url in
                     // Widget buttons: repeat a frequent entry, or open Money ready to type.
                     guard url.scheme == "agenda", url.host() == "money" else { return }
@@ -36,6 +34,14 @@ struct RootView: View {
         } else {
             SetupWizardView()
         }
+    }
+}
+
+extension RootView {
+    fileprivate static var widgetTriggers: some Publisher<Notification, Never> {
+        NotificationCenter.default.publisher(for: ModelContext.didSave)
+            .merge(with: NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification))
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
     }
 }
 
@@ -67,14 +73,22 @@ struct MainSplitView: View {
         .task {
             MoneyService.chargeRecurring(context)
             MoneyService.refreshWidgets(context)
+            // The app can stay open for weeks: the daily backup can't depend on a relaunch.
+            BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
         }
         .onReceive(Self.dayChanges) { _ in
             now = .now
             appState.refreshDay()
         }
         // ⌘Z / ⌘⇧Z undo calendar and task changes.
-        .onAppear { context.undoManager = undoManager }
-        .onChange(of: undoManager) { context.undoManager = undoManager }
+        .onAppear(perform: attachUndo)
+        .onChange(of: undoManager) { attachUndo() }
+    }
+
+    /// The app stays open for days: without a cap the undo stack would keep every change ever made.
+    private func attachUndo() {
+        undoManager?.levelsOfUndo = 100
+        context.undoManager = undoManager
     }
 
     /// Wakes on each minute boundary; the day check also catches midnight.
@@ -133,7 +147,7 @@ private struct CommandHandler: ViewModifier {
         content
             .onChange(of: appState.pendingCommand) { handle() }
             .sheet(isPresented: $showingNewTask) {
-                SheetScaffold(eyebrow: "New Task") {
+                SheetScaffold(eyebrow: "New Task", width: 600) {
                     QuickAddBar(areas: semester.sortedAreas, focusOnAppear: true) { showingNewTask = false }
                     Text("Type a title, then `#course`, a day and a time — e.g. “Lab report #so friday 6pm !”.")
                         .font(Theme.Font.caption)
@@ -141,7 +155,6 @@ private struct CommandHandler: ViewModifier {
                 } footer: {
                     ActionBar(primaryTitle: "Done") { showingNewTask = false }
                 }
-                .frame(width: 600)
             }
             .confirmationDialog(
                 "Replace everything with this backup?",

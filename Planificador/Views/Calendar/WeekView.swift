@@ -26,24 +26,56 @@ struct WeekView: View {
     static let snapMinutes = 15
 
     private var days: [Date] { math.weekDays(containing: anchor) }
-    private var hours: [Int] { Array(firstHour..<max(lastHour, firstHour + 1)) }
-    private var gridHeight: CGFloat { CGFloat(hours.count) * Self.hourHeight }
+
+    /// The hours from Settings, widened so nothing this week falls outside the grid.
+    private var hours: [Int] {
+        var first = firstHour
+        var last = max(lastHour, firstHour + 1)
+        for item in items where !item.isAllDay {
+            let startMinutes = math.minutesIntoDay(item.start)
+            let endMinutes = startMinutes + Int(item.end.timeIntervalSince(item.start) / 60)
+            first = min(first, startMinutes / 60)
+            last = max(last, min(24, (endMinutes + 59) / 60))
+        }
+        return Array(first..<last)
+    }
 
     var body: some View {
+        let days = days
+        let hours = hours
+        let gridHeight = CGFloat(hours.count) * Self.hourHeight
+        // Grouped once per redraw instead of filtering the whole week for every column.
+        let itemsByDay = Dictionary(grouping: items) { math.startOfDay($0.start) }
+        let tasksByDay = Dictionary(grouping: tasks) { $0.dueDate.map(math.startOfDay) ?? .distantPast }
         VStack(spacing: 0) {
-            header
+            HStack(alignment: .top, spacing: 0) {
+                Color.clear.frame(width: Self.timeColumnWidth, height: 1)
+                ForEach(days, id: \.self) { day in
+                    WeekDayHeader(
+                        day: day,
+                        isToday: math.isSameDay(day, .now),
+                        allDay: itemsByDay[day]?.filter(\.isAllDay) ?? [],
+                        tasks: tasksByDay[day] ?? [],
+                        onOpen: onOpen,
+                        onOpenTask: onOpenTask,
+                        onDrop: { onDrop($0, day) }
+                    )
+                    .frame(maxWidth: .infinity)
+                }
+            }
+            .padding(.vertical, Theme.Space.s)
             Divider()
             ScrollViewReader { scroller in
                 ScrollView(.vertical) {
                     HStack(alignment: .top, spacing: 0) {
-                        timeColumn
+                        timeColumn(hours)
                         GeometryReader { proxy in
                             let columnWidth = proxy.size.width / 7
                             HStack(spacing: 0) {
                                 ForEach(days, id: \.self) { day in
                                     WeekDayColumn(
                                         day: day,
-                                        items: items.filter { math.isSameDay($0.start, day) },
+                                        items: itemsByDay[day]?.filter { !$0.isAllDay } ?? [],
                                         isToday: math.isSameDay(day, .now),
                                         firstHour: hours.first ?? 0,
                                         lastHour: (hours.last ?? 23) + 1,
@@ -64,33 +96,14 @@ struct WeekView: View {
                     .padding(.bottom, Theme.Space.s)
                 }
                 .onAppear {
-                    let hour = max(firstHour, math.calendar.component(.hour, from: .now) - 1)
-                    scroller.scrollTo(hour, anchor: .top)
+                    let first = hours.first ?? 0
+                    scroller.scrollTo(max(first, math.calendar.component(.hour, from: .now) - 1), anchor: .top)
                 }
             }
         }
     }
 
-    // MARK: Header with day names and deadlines
-
-    private var header: some View {
-        HStack(alignment: .top, spacing: 0) {
-            Color.clear.frame(width: Self.timeColumnWidth, height: 1)
-            ForEach(days, id: \.self) { day in
-                WeekDayHeader(
-                    day: day,
-                    isToday: math.isSameDay(day, .now),
-                    tasks: tasks.filter { $0.dueDate.map { math.isSameDay($0, day) } ?? false },
-                    onOpenTask: onOpenTask,
-                    onDrop: { onDrop($0, day) }
-                )
-                .frame(maxWidth: .infinity)
-            }
-        }
-        .padding(.vertical, Theme.Space.s)
-    }
-
-    private var timeColumn: some View {
+    private func timeColumn(_ hours: [Int]) -> some View {
         VStack(spacing: 0) {
             ForEach(hours, id: \.self) { hour in
                 Text(String(format: "%d:00", hour))
@@ -108,7 +121,10 @@ struct WeekView: View {
 private struct WeekDayHeader: View {
     let day: Date
     let isToday: Bool
+    /// All-day events sit here, above the hour grid, with the day's deadlines.
+    let allDay: [CalendarItem]
     let tasks: [TaskItem]
+    var onOpen: (CalendarItem) -> Void
     var onOpenTask: (TaskItem) -> Void
     var onDrop: (String) -> Bool
 
@@ -127,6 +143,7 @@ private struct WeekDayHeader: View {
             }
             .font(Theme.Font.dayNumber)
             VStack(spacing: 2) {
+                ForEach(allDay) { EventChip(item: $0, onOpen: onOpen) }
                 ForEach(tasks, id: \.liveID) { TaskChip(task: $0, onOpen: onOpenTask) }
             }
             .padding(.horizontal, Theme.Space.xs)
@@ -320,7 +337,6 @@ private struct WeekBlockView: View {
         .padding(.horizontal, Theme.Space.xs + 1)
         .padding(.vertical, Theme.Space.xs - 1)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .frame(height: nil)
         .background(Theme.Palette.eventFill(item.colorHex), in: RoundedRectangle(cornerRadius: Theme.Radius.chip))
         .overlay(alignment: .leading) {
             UnevenRoundedRectangle(topLeadingRadius: Theme.Radius.chip, bottomLeadingRadius: Theme.Radius.chip)
