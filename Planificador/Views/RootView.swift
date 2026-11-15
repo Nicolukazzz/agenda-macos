@@ -27,11 +27,14 @@ struct RootView: View {
                     MoneyService.refreshWidgets(context)
                     // The timetable or the alert settings may have changed too.
                     ClassAlerts.refresh(context, semester: semester)
+                    TodayWidget.refresh(context, semester: semester)
                 }
                 .onOpenURL { url in
                     guard url.scheme == "agenda" else { return }
                     // The global "new task" hotkey: the same sheet as ⌘N, on whatever page is showing.
                     if url.host() == "task" { appState.pendingCommand = .newTask; return }
+                    // The Today widget.
+                    if url.host() == "today" { appState.selection = .today; return }
                     // Widget buttons: repeat a frequent entry, or open Money ready to type.
                     guard url.host() == "money" else { return }
                     appState.selection = .money
@@ -84,6 +87,7 @@ struct MainSplitView: View {
             BackupService.runDailyBackup(context, classesRoot: appState.classesRootURL)
             // Each new day pushes the two weeks of class alerts one day further.
             ClassAlerts.refresh(context, semester: semester)
+            TodayWidget.refresh(context, semester: semester)
         }
         .onReceive(Self.dayChanges) { _ in
             now = .now
