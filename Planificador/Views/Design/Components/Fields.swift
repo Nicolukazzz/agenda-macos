@@ -128,11 +128,16 @@ struct TagCompletionField: View {
 struct SearchField: View {
     @Binding var text: String
     var prompt = "Search"
+    /// Puts the cursor in the field when it appears (e.g. the ⌘K sheet).
+    var autofocus = false
+    @FocusState private var focused: Bool
 
     var body: some View {
         HStack(spacing: Theme.Space.s) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(prompt, text: $text).textFieldStyle(.plain)
+                .focused($focused)
+                .onAppear { if autofocus { focused = true } }
             if !text.isEmpty {
                 Button {
                     text = ""

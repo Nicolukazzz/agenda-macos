@@ -12,6 +12,7 @@ enum CourseTab: String, CaseIterable, Identifiable {
 }
 
 struct CourseView: View {
+    @Environment(AppState.self) private var appState
     @Bindable var area: Area
     @State private var tab: CourseTab = .tasks
     @State private var editing = false
@@ -30,7 +31,7 @@ struct CourseView: View {
                 case .tasks:
                     CourseTasksView(area: area)
                 case .notes:
-                    if let files { NotesView(files: files) } else { noFolder }
+                    if let files { NotesView(files: files, initialSelection: takeNote()) } else { noFolder }
                 case .files:
                     if let files { FilesView(files: files) } else { noFolder }
                 case .schedule:
@@ -49,12 +50,23 @@ struct CourseView: View {
                 .fixedSize()
             }
         }
+        // A note picked in search, also when this course page was already open.
+        .onChange(of: appState.pendingNote, initial: true) {
+            if appState.pendingNote != nil { tab = .notes }
+        }
         .task(id: area.folderPath) {
             files = area.isFolderMissing ? nil : area.folderURL.map(CourseFiles.init(folder:))
         }
         .sheet(isPresented: $editing) {
             AreaEditorView(area: area, semester: area.semester)
         }
+    }
+
+    /// Hands the note picked in search to the Notes tab, once.
+    private func takeNote() -> URL? {
+        guard let url = appState.pendingNote else { return nil }
+        DispatchQueue.main.async { appState.pendingNote = nil }
+        return url
     }
 
     private var noFolder: some View {

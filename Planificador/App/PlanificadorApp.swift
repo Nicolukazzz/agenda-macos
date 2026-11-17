@@ -54,6 +54,8 @@ struct AgendaCommands: Commands {
             Button("Import Backup…") { appState.pendingCommand = .importBackup }
         }
         CommandMenu("Go") {
+            Button("Search…") { appState.pendingCommand = .search }.keyboardShortcut("k")
+            Divider()
             Button("Today") { appState.selection = .today }.keyboardShortcut("1")
             Button("Calendar") { appState.selection = .calendar }.keyboardShortcut("2")
             Button("Tasks") { appState.selection = .tasks }.keyboardShortcut("3")
