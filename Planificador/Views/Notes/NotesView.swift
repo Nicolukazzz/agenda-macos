@@ -4,6 +4,8 @@ import SwiftUI
 /// A course's notes: list on the left (its `Notas/` notes plus other Markdown files), editor on the right.
 struct NotesView: View {
     let files: CourseFiles
+    /// Opened first instead of the newest note (a note picked in search).
+    var initialSelection: URL?
 
     @State private var selection: URL?
     @State private var search = ""
@@ -30,7 +32,8 @@ struct NotesView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .onAppear { selection = selection ?? files.notes.first?.url }
+        .onAppear { selection = initialSelection ?? selection ?? files.notes.first?.url }
+        .onChange(of: initialSelection) { if let initialSelection { selection = initialSelection } }
     }
 
     private var list: some View {

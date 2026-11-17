@@ -41,6 +41,9 @@ final class AppState {
         today = now
     }
 
+    /// A note picked in search: its course page opens on the Notes tab with it selected.
+    var pendingNote: URL?
+
     /// Menu commands are handed to the views that own the model context.
     var pendingCommand: AppCommand?
 
@@ -79,6 +82,7 @@ enum CalendarMode: String, CaseIterable, Identifiable {
 /// Actions triggered from the menu bar.
 enum AppCommand: Equatable {
     case newTask
+    case search
     case newEvent
     case newMoneyEntry
     case exportBackup

@@ -153,6 +153,8 @@ private struct CommandHandler: ViewModifier {
     let semester: Semester
 
     @State private var showingNewTask = false
+    @State private var searching = false
+    @State private var editingTask: TaskItem?
     @State private var pendingImport: URL?
     @State private var message: String?
 
@@ -169,6 +171,10 @@ private struct CommandHandler: ViewModifier {
                     ActionBar(primaryTitle: "Done") { showingNewTask = false }
                 }
             }
+            .sheet(isPresented: $searching) {
+                SearchView(semester: semester, onOpen: open)
+            }
+            .sheet(item: $editingTask) { TaskEditorView(task: $0, semester: semester) }
             .confirmationDialog(
                 "Replace everything with this backup?",
                 isPresented: Binding(get: { pendingImport != nil }, set: { if !$0 { pendingImport = nil } })
@@ -188,6 +194,9 @@ private struct CommandHandler: ViewModifier {
         case .newTask:
             appState.pendingCommand = nil
             showingNewTask = true
+        case .search:
+            appState.pendingCommand = nil
+            searching = true
         case .newMoneyEntry:
             // MoneyPage's quick-add bar picks this up and focuses itself.
             appState.selection = .money
@@ -219,6 +228,21 @@ private struct CommandHandler: ViewModifier {
             panel.allowedContentTypes = [.json]
             panel.directoryURL = BackupService.folder(classesRoot: appState.classesRootURL)
             if panel.runModal() == .OK { pendingImport = panel.url }
+        }
+    }
+
+    /// A search result: tasks open their editor; events open their week; notes open in their course.
+    private func open(_ target: SearchTarget) {
+        switch target {
+        case .task(let task):
+            editingTask = task
+        case .event(let date):
+            appState.selection = .calendar
+            appState.calendarMode = .week
+            appState.calendarAnchor = date
+        case .note(let url, let area):
+            appState.pendingNote = url
+            appState.selection = .area(area.persistentModelID)
         }
     }
 
